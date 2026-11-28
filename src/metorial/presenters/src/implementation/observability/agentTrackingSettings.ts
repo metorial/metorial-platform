@@ -37,7 +37,15 @@ export let v1AgentTrackingOrganizationSettingsPresenter = Presenter.create(
     privacy: {
       hide_individuals: settings.privacy.hideIndividuals,
       min_group_users: settings.privacy.minGroupUsers
-    }
+    },
+    desktop: {
+      tool_details: settings.desktop.toolDetails,
+      session_context: settings.desktop.sessionContext,
+      session_titles: settings.desktop.sessionTitles,
+      history_import: settings.desktop.historyImport,
+      history_import_days: settings.desktop.historyImportDays
+    },
+    links: { ticket_url_template: settings.links.ticketUrlTemplate }
   }))
   .schema(
     v.object({
@@ -69,6 +77,54 @@ export let v1AgentTrackingOrganizationSettingsPresenter = Presenter.create(
           name: 'privacy',
           description: 'Organization-wide privacy settings for agent usage.'
         }
+      ),
+      desktop: v.object(
+        {
+          tool_details: v.boolean({
+            name: 'tool_details',
+            description:
+              'Metorial Desktop turns on detailed tool reporting in the AI tools it sets up, so tool inputs, file paths and commands, which carry the names of skills and MCP servers, are sent. Off by default.'
+          }),
+          session_context: v.boolean({
+            name: 'session_context',
+            description:
+              'Metorial Desktop reports the repository, branch, commits, pull requests and ticket keys of each agent session. Folder paths, commit messages and code are never sent. On by default.'
+          }),
+          session_titles: v.boolean({
+            name: 'session_titles',
+            description:
+              'Metorial Desktop reports session titles, which the AI tools write from what was typed and so can contain details of the work. Off by default.'
+          }),
+          history_import: v.boolean({
+            name: 'history_import',
+            description:
+              'Metorial Desktop imports agent sessions from before it was installed, from the session files the AI tools keep on each device. Off by default.'
+          }),
+          history_import_days: v.number({
+            name: 'history_import_days',
+            description:
+              "How many days back history import goes, from 1 to 365. Records older than a project's record retention are refused. 90 by default.",
+            examples: [90]
+          })
+        },
+        {
+          name: 'desktop',
+          description:
+            "What the AI tools Metorial Desktop sets up on members' computers report."
+        }
+      ),
+      links: v.object(
+        {
+          ticket_url_template: v.nullable(
+            v.string({
+              name: 'ticket_url_template',
+              description:
+                'URL that ticket keys link to, with `{key}` where the key goes. `null` while ticket keys are not linked.',
+              examples: ['https://linear.app/acme/issue/{key}']
+            })
+          )
+        },
+        { name: 'links', description: 'Where agent usage links out to.' }
       )
     })
   )

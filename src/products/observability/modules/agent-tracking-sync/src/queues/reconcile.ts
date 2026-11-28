@@ -1,5 +1,9 @@
 import { createCron } from '@metorial/cron';
-import { db } from '@metorial/db';
+import { db, type Organization } from '@metorial/db';
+import {
+  consumerDeviceSettingsService,
+  visibleDetectionWhere
+} from '@metorial/module-consumer-core';
 import { combineQueueProcessors, createQueue, dailyPacedDelay } from '@metorial/queue';
 import { getAgentTracking, ignoreNotFound, isAgentTrackingEnabled } from '../lib/client';
 import { isAgentTrackingEnabledForOrganization } from '../lib/flag';
@@ -10,6 +14,7 @@ import { syncScopeQueue } from './syncScope';
 
 let pageSize = 500;
 let entityPageSize = 100;
+let agentReconcileDelayMs = 60_000;
 
 export let reconcileCron = createCron(
   { name: 'agent-tracking/reconcile/cron', cron: '0 3 * * *', startupJitterMs: 60_000 },
@@ -91,7 +96,8 @@ export let reconcileSingleQueueProcessor = reconcileSingleQueue.process(async da
   ]);
   await reconcileEntitiesQueue.addMany([
     { organizationId: organization.id, kind: 'user' },
-    { organizationId: organization.id, kind: 'device' }
+    { organizationId: organization.id, kind: 'device' },
+    { organizationId: organization.id, kind: 'agent' }
   ]);
 
   let backfillRoster =
@@ -202,24 +208,31 @@ export let reconcileEntitiesQueueProcessor = reconcileEntitiesQueue.process(asyn
     after: data.after
   });
 
-  let synced = page.items.filter(item => item.source == source && item.ref);
+  // An agent seen in telemetry stays even when no device configures or detects it.
+  let synced = page.items.filter(
+    item => item.source == source && item.ref && (data.kind != 'agent' || !item.lastSeenAt)
+  );
   let refs = synced.map(item => item.ref!);
 
-  let live =
-    data.kind == 'user'
-      ? await db.consumer.findMany({
-          where: { id: { in: refs }, organizationOid: organization.oid },
-          select: { id: true }
-        })
-      : await db.consumerDevice.findMany({
-          where: {
-            id: { in: refs },
-            status: 'active',
-            instance: { organizationOid: organization.oid }
-          },
-          select: { id: true }
-        });
-  let liveRefs = new Set(live.map(row => row.id));
+  let liveRefs =
+    data.kind == 'agent'
+      ? await liveAgentRefs({ organization, refs })
+      : new Set(
+          (data.kind == 'user'
+            ? await db.consumer.findMany({
+                where: { id: { in: refs }, organizationOid: organization.oid },
+                select: { id: true }
+              })
+            : await db.consumerDevice.findMany({
+                where: {
+                  id: { in: refs },
+                  status: 'active',
+                  instance: { organizationOid: organization.oid }
+                },
+                select: { id: true }
+              })
+          ).map(row => row.id)
+        );
 
   await Promise.all(
     synced
@@ -236,6 +249,56 @@ export let reconcileEntitiesQueueProcessor = reconcileEntitiesQueue.process(asyn
     await reconcileEntitiesQueue.add({ ...data, after: last.id }, dailyPacedDelay());
   }
 });
+
+// An agent stays while any device of the organization configures it, or reports it with
+// detection on and a report that isn't stale.
+let liveAgentRefs = async (d: { organization: Organization; refs: string[] }) => {
+  let configured = await db.mcpClientType.findMany({
+    where: {
+      key: { in: d.refs },
+      consumerDeviceClients: {
+        some: { consumerDevice: { instance: { organizationOid: d.organization.oid } } }
+      }
+    },
+    select: { key: true }
+  });
+  let live = new Set(configured.map(clientType => clientType.key));
+
+  let visible = visibleDetectionWhere({ excludeStale: true });
+  let detected = await db.consumerDeviceDetection.findMany({
+    where: {
+      ...visible,
+      toolKey: { in: d.refs },
+      instance: { ...visible.instance, organizationOid: d.organization.oid }
+    },
+    distinct: ['toolKey', 'instanceOid'],
+    select: { toolKey: true, instance: { include: { project: true } } }
+  });
+
+  let active = new Map<bigint, Promise<boolean>>();
+  for (let detection of detected) {
+    let instance = detection.instance;
+    if (!active.has(instance.oid)) {
+      active.set(
+        instance.oid,
+        consumerDeviceSettingsService.isAiToolDetectionActive({
+          organization: d.organization,
+          project: instance.project,
+          instance
+        })
+      );
+    }
+    if (await active.get(instance.oid)) live.add(detection.toolKey);
+  }
+
+  return live;
+};
+
+export let enqueueAgentReconcile = async (organizationId: string) =>
+  await reconcileEntitiesQueue.add(
+    { organizationId, kind: 'agent' },
+    { id: `agents-${organizationId}`, delay: agentReconcileDelayMs }
+  );
 
 export let reconcileQueueProcessor = combineQueueProcessors([
   reconcileCron,

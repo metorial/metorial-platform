@@ -73,6 +73,22 @@ describe('agentTrackingTokenService', () => {
     let rotated = { oid: 2n, status: 'active' as const };
     let signedOut = { oid: 3n, status: 'signed_out' as const };
 
+    let defaultDesktop = {
+      toolDetails: false,
+      sessionContext: true,
+      sessionTitles: false,
+      historyImport: false,
+      historyImportDays: 90
+    };
+
+    let desktopOff = {
+      toolDetails: false,
+      sessionContext: false,
+      sessionTitles: false,
+      historyImport: false,
+      historyImportDays: 90
+    };
+
     it('returns the newest active bound token of each signed-in device', async () => {
       vi.mocked(db.agentTrackingIngestToken.findMany).mockResolvedValue([
         { consumerDeviceOid: 2n, serviceIngestTokenId: 'git_old' },
@@ -89,9 +105,21 @@ describe('agentTrackingTokenService', () => {
         orderBy: { oid: 'asc' },
         select: { consumerDeviceOid: true, serviceIngestTokenId: true }
       });
-      expect(telemetry.get(1n)).toEqual({ enabled: true, tokenId: null });
-      expect(telemetry.get(2n)).toEqual({ enabled: true, tokenId: 'git_new' });
-      expect(telemetry.get(3n)).toEqual({ enabled: true, tokenId: null });
+      expect(telemetry.get(1n)).toEqual({
+        enabled: true,
+        tokenId: null,
+        ...defaultDesktop
+      });
+      expect(telemetry.get(2n)).toEqual({
+        enabled: true,
+        tokenId: 'git_new',
+        ...defaultDesktop
+      });
+      expect(telemetry.get(3n)).toEqual({
+        enabled: true,
+        tokenId: null,
+        ...defaultDesktop
+      });
       expect(mocks.agentTracking.ingestToken.create).not.toHaveBeenCalled();
     });
 
@@ -103,8 +131,65 @@ describe('agentTrackingTokenService', () => {
         consumerDevices: [active]
       });
 
-      expect(telemetry.get(1n)).toEqual({ enabled: false, tokenId: null });
+      expect(telemetry.get(1n)).toEqual({
+        enabled: false,
+        tokenId: null,
+        ...desktopOff
+      });
       expect(db.agentTrackingIngestToken.findMany).not.toHaveBeenCalled();
+    });
+
+    it('carries the organization Desktop settings only while telemetry is on', async () => {
+      let desktop = {
+        toolDetails: true,
+        sessionContext: false,
+        sessionTitles: true,
+        historyImport: true,
+        historyImportDays: 30
+      };
+      mocks.desktop.value = desktop;
+      vi.mocked(db.agentTrackingIngestToken.findMany).mockResolvedValue([]);
+
+      let on = await agentTrackingTokenService.listDeviceTelemetry({
+        ...scope,
+        consumerDevices: [active]
+      });
+      mocks.flagged.value = false;
+      let off = await agentTrackingTokenService.listDeviceTelemetry({
+        ...scope,
+        consumerDevices: [active]
+      });
+
+      expect(on.get(1n)).toEqual({
+        enabled: true,
+        tokenId: null,
+        ...desktop
+      });
+      expect(off.get(1n)).toEqual({
+        enabled: false,
+        tokenId: null,
+        ...desktopOff
+      });
+    });
+
+    it('sends the window the ingest accepts: the shorter of the setting and the record retention', async () => {
+      vi.mocked(db.agentTrackingIngestToken.findMany).mockResolvedValue([]);
+      let windowFor = async (historyImportDays: number, recordDays: number | null) => {
+        mocks.desktop.value = { ...defaultDesktop, historyImport: true, historyImportDays };
+        mocks.recordDays.value = recordDays;
+
+        let telemetry = await agentTrackingTokenService.listDeviceTelemetry({
+          ...scope,
+          consumerDevices: [active]
+        });
+
+        return telemetry.get(1n)!.historyImportDays;
+      };
+
+      expect(await windowFor(365, null)).toBe(90);
+      expect(await windowFor(365, 200)).toBe(200);
+      expect(await windowFor(30, 200)).toBe(30);
+      expect(await windowFor(30, null)).toBe(30);
     });
 
     it('reports telemetry off while the public ingest URL is not set', async () => {
@@ -115,7 +200,11 @@ describe('agentTrackingTokenService', () => {
         consumerDevices: [active]
       });
 
-      expect(telemetry.get(1n)).toEqual({ enabled: false, tokenId: null });
+      expect(telemetry.get(1n)).toEqual({
+        enabled: false,
+        tokenId: null,
+        ...desktopOff
+      });
     });
   });
 

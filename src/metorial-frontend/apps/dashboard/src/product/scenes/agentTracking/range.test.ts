@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { hiddenIndividualsSpendRangeFilter, spendRangeFilter } from './range';
+import { agentTrackingRangeFilter, hiddenIndividualsSpendRangeFilter } from './range';
 
 let optionIds = ({
   filter
-}: typeof spendRangeFilter | typeof hiddenIndividualsSpendRangeFilter) =>
+}: typeof agentTrackingRangeFilter | typeof hiddenIndividualsSpendRangeFilter) =>
   filter.type == 'select' ? filter.options.map(option => option.id) : [];
 
-describe('spendRangeFilter', () => {
+describe('agentTrackingRangeFilter', () => {
   it('offers every preset, but no Today while individuals are hidden', () => {
-    expect(optionIds(spendRangeFilter)).toEqual([
+    expect(optionIds(agentTrackingRangeFilter)).toEqual([
       'today',
       'last_7_days',
       'last_30_days',

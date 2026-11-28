@@ -102,8 +102,12 @@ import {
   ConsumerAuthClient,
   ConsumerAuthClientSurface,
   ConsumerAuthTestAuthorization,
+  AiToolPolicyStatus,
   ConsumerDevice,
   ConsumerDeviceClient,
+  ConsumerDeviceConnectionMode,
+  ConsumerDeviceDetection,
+  ConsumerDeviceSettings,
   ConsumerGroup,
   ConsumerIntegration,
   ConsumerIntegrationEndpoint,
@@ -203,14 +207,19 @@ import type {
 import type { AnyAccessTagSelector } from '@metorial/module-access';
 import type {
   AgentTrackingFilterValues,
+  AgentTrackingMcpServerUsage,
+  AgentTrackingProviderCalls,
   AgentTrackingMemberInsights,
   AgentTrackingSeenMember,
   AgentTrackingSessionDetail,
+  AgentTrackingSessionToolCalls,
   AgentTrackingSessionView,
   AgentTrackingSetupStatus,
+  AgentTrackingSkillUsage,
   AgentTrackingSpendBreakdown,
   AgentTrackingSpendReport,
   AgentTrackingSpendTimeline,
+  AgentTrackingToolCallSession,
   AgentTrackingViewRecord
 } from '@metorial/module-agent-tracking-query';
 import type {
@@ -236,8 +245,13 @@ import type {
   AiGatewayVirtualModelTemplate,
   AiGatewayVirtualModelVersion
 } from '@metorial/module-ai-gateway';
+import type { DetectionCatalog } from '@metorial/model-catalog/detection';
 import type { AuditLog } from '@metorial/module-audit-log';
-import { EnrichedConsumerSurface } from '@metorial/module-consumer-core';
+import {
+  EnrichedConsumerSurface,
+  type AiToolSummary,
+  type DeviceMonitor
+} from '@metorial/module-consumer-core';
 import {
   ConsumerActivityAgent,
   ConsumerActivitySessionConnection,
@@ -2714,9 +2728,53 @@ export let consumerDeviceType = PresentableType.create<{
       excludedSkills: { skill: Pick<Skill, 'id'> }[];
     })[];
     consumerProfile: ConsumerProfile;
+    detections: ConsumerDeviceDetection[];
   };
-  telemetry?: { enabled: boolean; tokenId: string | null };
+  telemetry?: {
+    enabled: boolean;
+    tokenId: string | null;
+    toolDetails: boolean;
+    sessionContext: boolean;
+    sessionTitles: boolean;
+    historyImport: boolean;
+    historyImportDays: number;
+  };
+  monitor?: DeviceMonitor;
+  install?: { connectionMode: ConsumerDeviceConnectionMode };
 }>()('consumer.device');
+
+export let consumerDeviceDetectionReportType = PresentableType.create<{
+  consumerDevice: ConsumerDevice & { detections: ConsumerDeviceDetection[] };
+  applied: boolean;
+}>()('consumer.device.detection_report');
+
+export let consumerDeviceDetectionCatalogType = PresentableType.create<{
+  catalog: DetectionCatalog;
+}>()('consumer.device.detection_catalog');
+
+export let consumerDeviceSettingsType = PresentableType.create<{
+  instance: Pick<Instance, 'id'>;
+  settings: ConsumerDeviceSettings | null;
+}>()('consumer.device_settings');
+
+export type AiToolTelemetry = { lastUsedAt: Date | null };
+
+export let aiToolType = PresentableType.create<{
+  aiTool: AiToolSummary;
+  telemetry: AiToolTelemetry | null;
+}>()('ai_tool');
+
+export let aiToolDetectionType = PresentableType.create<{
+  detection: ConsumerDeviceDetection & {
+    consumerDevice: Pick<ConsumerDevice, 'id' | 'name' | 'os' | 'detectionReportedAt'> & {
+      consumerProfile: Pick<ConsumerProfile, 'id'> & {
+        consumer: Pick<Consumer, 'id' | 'name' | 'email'>;
+      };
+    };
+  };
+  policyStatus: AiToolPolicyStatus;
+  telemetry: AiToolTelemetry | null;
+}>()('ai_tool.detection');
 
 export let consumerDeviceTelemetryTokenType = PresentableType.create<{
   consumerDevice: Pick<ConsumerDevice, 'id'>;
@@ -2758,6 +2816,14 @@ export let agentTrackingSessionDetailType = PresentableType.create<{
   session: AgentTrackingSessionDetail;
 }>()('agent_tracking.session_detail');
 
+export let agentTrackingSessionToolCallsType = PresentableType.create<{
+  toolCalls: AgentTrackingSessionToolCalls;
+}>()('agent_tracking.session_tool_calls');
+
+export let agentTrackingToolCallSessionType = PresentableType.create<{
+  toolCallSession: AgentTrackingToolCallSession;
+}>()('agent_tracking.tool_call_session');
+
 export let agentTrackingFilterValuesType = PresentableType.create<{
   filterValues: AgentTrackingFilterValues;
 }>()('agent_tracking.filter_values');
@@ -2770,6 +2836,18 @@ export let agentTrackingMemberType = PresentableType.create<{
 export let agentTrackingMemberInsightsType = PresentableType.create<{
   insights: AgentTrackingMemberInsights;
 }>()('agent_tracking.member_insights');
+
+export let agentTrackingSkillUsageType = PresentableType.create<{
+  usage: AgentTrackingSkillUsage;
+}>()('agent_tracking.skill_usage');
+
+export let agentTrackingMcpServerUsageType = PresentableType.create<{
+  usage: AgentTrackingMcpServerUsage;
+}>()('agent_tracking.mcp_server_usage');
+
+export let agentTrackingProviderCallsType = PresentableType.create<{
+  providerCalls: AgentTrackingProviderCalls;
+}>()('agent_tracking.provider_calls');
 
 export let agentTrackingSetupStatusType = PresentableType.create<{
   setupStatus: AgentTrackingSetupStatus;

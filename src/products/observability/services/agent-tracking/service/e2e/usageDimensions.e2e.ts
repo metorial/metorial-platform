@@ -13,6 +13,7 @@ import {
   rowsByKey,
   rpcErrorCode,
   runQuery,
+  sendDesktopContext,
   usagePollOptions
 } from './support';
 
@@ -147,6 +148,52 @@ describe('usage dimensions', () => {
     expect(
       await byKey(['model'], { field: 'vendor.kind', op: 'in', value: ['cloud'] })
     ).toEqual({});
+  });
+
+  it('groups usage by the branch and tickets of Desktop context that arrived later', async () => {
+    await importKnowledge(dimensionCatalogOptions());
+
+    let { organization, secret } = await createToken();
+    let sessionId = uniqueId('session');
+
+    await sendClaudeApiRequest({
+      secret,
+      sessionId,
+      model: sonnetRaw,
+      inputTokens: 1_000_000,
+      outputTokens: 0
+    });
+
+    let usage = (dimensions: string[]) =>
+      runQuery(organization.id, {
+        dataset: 'usage',
+        range: rangeAroundNow(),
+        measures: ['cost.usd', 'requests'],
+        dimensions
+      });
+
+    await eventually(async () => {
+      let result = await usage([]);
+      expect(result.rows[0]).toMatchObject({ requests: 1 });
+    }, usagePollOptions);
+
+    expect(await sendDesktopContext(secret, sessionId)).toMatchObject({ accepted: 4 });
+
+    await eventually(async () => {
+      let byTicket = rowsByKey(
+        (await usage(['ticket'])).rows,
+        ['ticket'],
+        row => row.requests
+      );
+      expect(byTicket).toEqual({ 'MT-365': 1, 'ENG-9': 1 });
+    }, usagePollOptions);
+
+    let byBranch = rowsByKey(
+      (await usage(['branch'])).rows,
+      ['branch'],
+      row => row['cost.usd']
+    );
+    expect(byBranch).toEqual({ 'ivan/mt-365-title': 3 });
   });
 
   it('rejects unknown dimensions', async () => {

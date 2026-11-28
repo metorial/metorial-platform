@@ -138,7 +138,13 @@ export let sumSpendCells = (rows: Cells[]): Cells => {
   };
 
   for (let row of rows) {
-    for (let column of ['requests', 'requests_without_cost', 'requests_without_list_price']) {
+    for (let column of [
+      'requests',
+      'requests_without_cost',
+      'requests_without_list_price',
+      'tokens_without_cost',
+      'tokens_without_list_price'
+    ]) {
       total[column] = addNumbers(total[column], row[column]);
     }
     total.tokens = addObjects(total.tokens, row.tokens);

@@ -9,20 +9,58 @@ import {
   useAgentTrackingOrganizationSettings,
   useAgentTrackingProjectSettings
 } from '@metorial/state';
-import { Button, Callout, Flex, NumberInput, Switch, Text } from '@metorial/ui';
+import { Button, Callout, Flex, Input, NumberInput, Switch, Text } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import React from 'react';
+import styled from 'styled-components';
+import { isHttpUrl } from '../../lib/isHttpUrl';
 import { useAgentTrackingSettingsAccess } from './access';
+import { classificationUpdate, hostedModelPromptText } from './classification';
 import { agentTrackingErrorStatus, AgentTrackingErrorState, notSetUpText } from './errorState';
 import { WithInfo } from './info';
+import { organizationSwitchLabels, toolDetailsOffText } from './settingsFile';
 
 let minGroupUsersRange = { min: 3, max: 100 };
 
 let retentionDaysRange = { min: 1, max: 3650 };
 
+let historyImportDaysRange = { min: 1, max: 365 };
+
+let ticketUrlTemplateKey = '{key}';
+
+let DependentOption = styled.div`
+  padding-left: 24px;
+`;
+
 type OrganizationSettings = DashboardOrganizationsConfigureAgentTrackingGetOutput;
 type ProjectSettings = DashboardProjectsConfigureAgentTrackingGetOutput;
 type InstanceSettings = DashboardInstanceAgentTrackingSettingsGetOutput;
+
+let desktopSwitches = [
+  {
+    id: 'toolDetails',
+    label: organizationSwitchLabels.toolDetails,
+    description: `When on, Agent Usage keeps MCP server and tool names, skill names, and custom command and agent names. Tool inputs, outputs and error text are kept only as a size and a fingerprint by default. ${toolDetailsOffText}`
+  },
+  {
+    id: 'sessionContext',
+    label: organizationSwitchLabels.sessionContext,
+    description:
+      'Keeps the repository, branch, commits, ticket keys and working folder of each agent session, and its pull requests from Metorial Desktop. By default the folder is not kept as its full path, and code and commit messages are never part of it.'
+  },
+  {
+    id: 'sessionTitles',
+    label: 'Session Titles',
+    description:
+      'Keeps the titles Claude Code gives its sessions. Claude Code writes them from what was typed, so they can contain details of the work.'
+  },
+  {
+    id: 'historyImport',
+    label: 'History Import',
+    description:
+      "Imports the Claude Code and Codex sessions already on a member's computer when this is turned on, from the session files those tools keep."
+  }
+] as const;
 
 let SettingsSection = ({
   title,
@@ -254,24 +292,24 @@ let ClassificationSection = ({
       aiEnabled: settings.classification.aiEnabled
     },
     updateInitialValues: true,
-    onSubmit: async classification => {
-      await update.mutate({ classification });
+    onSubmit: async values => {
+      await update.mutate({ classification: classificationUpdate(values) });
     }
   });
 
   return (
     <SettingsSection
       title="Classification"
-      description={`Applies to the selected environment, ${environmentName}: how its sessions are matched to your projects, teams and cost centers.`}
+      description={`Applies to the selected environment, ${environmentName}: assigns its agent sessions to projects and cost centers. Assignments are not shown in the dashboard yet.`}
       form={form}
       update={update}
       canWrite={canWrite}
-      readOnlyText="Only organization admins can change these settings."
+      readOnlyText="Only members who can change Agent Usage in this environment can change these settings."
     >
       <Switch
         label={
-          <WithInfo info="Matches sessions by ticket references such as ENG-123 and by earlier matches of the same repository, without external calls.">
-            Rule-Based Classification
+          <WithInfo info="Assigns each session to a project or cost center from its ticket keys, such as ENG-123, and from earlier assignments in the same workspace or repository, without sending anything outside Metorial.">
+            Assign Sessions Automatically
           </WithInfo>
         }
         checked={form.values.deterministicEnabled}
@@ -279,16 +317,164 @@ let ClassificationSection = ({
         onCheckedChange={checked => form.setFieldValue('deterministicEnabled', checked)}
       />
 
-      <Switch
-        label={
-          <WithInfo info="Sends session context, such as repository, branch, ticket references and team names to a hosted model that may run outside your organization's region.">
-            Hosted Model Classification
-          </WithInfo>
-        }
-        checked={form.values.aiEnabled}
-        disabled={!canWrite}
-        onCheckedChange={checked => form.setFieldValue('aiEnabled', checked)}
-      />
+      <DependentOption>
+        <Switch
+          label={
+            <WithInfo
+              info={`With Assign Sessions Automatically, sessions the rules cannot assign go to a hosted model that may run outside your organization's region. It receives the repository, branch, ticket keys, workspace name, session tags, AI tool, MCP server names, tool call counts and the member's team names, with your projects and cost centers to choose from. ${hostedModelPromptText(settings.content.mode)}`}
+            >
+              Hosted Model for Unmatched Sessions
+            </WithInfo>
+          }
+          checked={form.values.deterministicEnabled && form.values.aiEnabled}
+          disabled={!canWrite || !form.values.deterministicEnabled}
+          onCheckedChange={checked => form.setFieldValue('aiEnabled', checked)}
+        />
+      </DependentOption>
+    </SettingsSection>
+  );
+};
+
+let DesktopSection = ({
+  settings,
+  canWrite
+}: {
+  settings: OrganizationSettings;
+  canWrite: boolean;
+}) => {
+  let update = useAgentTrackingOrganizationSettings(
+    settings.organizationId
+  ).useUpdateMutator();
+  let form = useForm({
+    initialValues: {
+      ...settings.desktop,
+      historyImportDays: settings.desktop.historyImportDays as number | null
+    },
+    updateInitialValues: true,
+    onSubmit: async desktop => {
+      await update.mutate({
+        desktop: { ...desktop, historyImportDays: desktop.historyImportDays ?? undefined }
+      });
+    },
+    schema: yup =>
+      yup.object({
+        historyImportDays: yup
+          .number()
+          .nullable()
+          .typeError('Enter a number')
+          .integer('Enter a whole number')
+          .min(historyImportDaysRange.min, `At least ${historyImportDaysRange.min} day`)
+          .max(historyImportDaysRange.max, `At most ${historyImportDaysRange.max} days`)
+          .required('Enter a number of days')
+      })
+  });
+
+  return (
+    <SettingsSection
+      title="Collected Data"
+      description="These switches decide what Agent Usage keeps for this organization, across every project and environment. Detailed Tool Reporting and Session Context apply to every AI tool that reports to Metorial; Session Titles and History Import need Metorial Desktop on the member's computer."
+      form={form}
+      update={update}
+      canWrite={canWrite}
+      readOnlyText="Only organization admins can change these settings."
+    >
+      {desktopSwitches.map(desktopSwitch => (
+        <Switch
+          key={desktopSwitch.id}
+          label={<WithInfo info={desktopSwitch.description}>{desktopSwitch.label}</WithInfo>}
+          checked={form.values[desktopSwitch.id]}
+          disabled={!canWrite}
+          onCheckedChange={checked => form.setFieldValue(desktopSwitch.id, checked)}
+        />
+      ))}
+
+      {form.values.historyImport ? (
+        <DependentOption>
+          <Flex direction="column" gap={4}>
+            <NumberInput
+              label={
+                <WithInfo info="How far back History Import reads session files, never further than the Raw Records retention of a project.">
+                  Import Window
+                </WithInfo>
+              }
+              unit="days"
+              min={historyImportDaysRange.min}
+              max={historyImportDaysRange.max}
+              value={form.values.historyImportDays}
+              disabled={!canWrite}
+              onChange={value => form.setFieldValue('historyImportDays', value)}
+              onBlur={() => form.setFieldTouched('historyImportDays', true)}
+            />
+            <form.RenderError field="historyImportDays" />
+          </Flex>
+        </DependentOption>
+      ) : null}
+    </SettingsSection>
+  );
+};
+
+let LinksSection = ({
+  settings,
+  canWrite
+}: {
+  settings: OrganizationSettings;
+  canWrite: boolean;
+}) => {
+  let update = useAgentTrackingOrganizationSettings(
+    settings.organizationId
+  ).useUpdateMutator();
+  let form = useForm({
+    initialValues: { ticketUrlTemplate: settings.links.ticketUrlTemplate ?? '' },
+    updateInitialValues: true,
+    onSubmit: async values => {
+      await update.mutate({
+        links: { ticketUrlTemplate: values.ticketUrlTemplate.trim() || null }
+      });
+    },
+    schema: yup =>
+      yup.object({
+        ticketUrlTemplate: yup
+          .string()
+          .test(
+            'ticket-url-template',
+            `Enter an http or https URL with ${ticketUrlTemplateKey} in its path or query`,
+            value => {
+              let template = value?.trim();
+              if (!template) return true;
+
+              return (
+                template.includes(ticketUrlTemplateKey) &&
+                isHttpUrl(template.replaceAll(ticketUrlTemplateKey, 'KEY-1'))
+              );
+            }
+          )
+      })
+  });
+
+  return (
+    <SettingsSection
+      title="Links"
+      description="Applies to every project and environment of this organization: where agent usage links out to."
+      form={form}
+      update={update}
+      canWrite={canWrite}
+      readOnlyText="Only organization admins can change these settings."
+    >
+      <Flex direction="column" gap={4}>
+        <Input
+          label={
+            <WithInfo
+              info={`Link ticket keys to your tracker. Use ${ticketUrlTemplateKey} where the ticket key goes.`}
+            >
+              Ticket Link
+            </WithInfo>
+          }
+          placeholder={`https://linear.app/acme/issue/${ticketUrlTemplateKey}`}
+          disabled={!canWrite}
+          {...form.getFieldProps('ticketUrlTemplate')}
+        />
+        <form.RenderError field="ticketUrlTemplate" />
+      </Flex>
     </SettingsSection>
   );
 };
@@ -358,7 +544,11 @@ export let AgentTrackingSettings = ({
         { organization },
         errorState(organization)
       )(({ organization }) => (
-        <PrivacySection settings={organization.data} canWrite={access.privacy} />
+        <Flex direction="column" gap={20}>
+          <PrivacySection settings={organization.data} canWrite={access.organization} />
+          <DesktopSection settings={organization.data} canWrite={access.organization} />
+          <LinksSection settings={organization.data} canWrite={access.organization} />
+        </Flex>
       ))}
       {renderWithLoader(
         { project },
@@ -366,16 +556,7 @@ export let AgentTrackingSettings = ({
       )(({ project }) => (
         <RetentionSection settings={project.data} canWrite={access.retention} />
       ))}
-      {renderWithLoader(
-        { instance },
-        errorState(instance)
-      )(({ instance }) => (
-        <ClassificationSection
-          settings={instance.data}
-          environmentName={environmentName}
-          canWrite={access.instance}
-        />
-      ))}
+      {/* {renderWithLoader({ instance }, errorState(instance))(({ instance }) => <ClassificationSection settings={instance.data} environmentName={environmentName} canWrite={access.instance} />)} */}
     </Flex>
   );
 };

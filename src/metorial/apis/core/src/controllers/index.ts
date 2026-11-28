@@ -36,6 +36,7 @@ import {
   dashboardAgentTrackingSettingsController,
   dashboardAgentTrackingSetupStatusController,
   dashboardAgentTrackingSpendController,
+  dashboardAgentTrackingToolController,
   dashboardAgentTrackingViewController,
   dashboardAiAnalysisConfigurationController,
   dashboardAssistantController,
@@ -67,6 +68,8 @@ import {
 } from './dashboard';
 import {
   agentTrackingSessionController,
+  agentTrackingSessionToolCallController,
+  agentTrackingToolCallSessionController,
   agentController,
   callbackController,
   callbackEventController,
@@ -81,8 +84,11 @@ import {
   chatMessageController,
   chatThreadController,
   chatWorkspaceController,
+  aiToolController,
+  aiToolDetectionController,
   consumerController,
   consumerDeviceManagementController,
+  consumerDeviceSettingsController,
   consumerSurfaceController,
   customProviderCodeController,
   customProviderCommitController,
@@ -665,6 +671,9 @@ export let magnetarController = Controller.create<any>(
 
     consumerController,
     consumerDeviceManagementController,
+    consumerDeviceSettingsController,
+    aiToolController,
+    aiToolDetectionController,
     consumerSurfaceController,
 
     portalController,
@@ -740,7 +749,10 @@ export let dashboardController = Controller.create<any>(
     dashboardInstanceUsageController,
     dashboardAgentTrackingIngestSourceController,
     dashboardAgentTrackingSpendController,
+    dashboardAgentTrackingToolController,
     agentTrackingSessionController,
+    agentTrackingSessionToolCallController,
+    agentTrackingToolCallSessionController,
     dashboardAgentTrackingFilterValueController,
     dashboardAgentTrackingMemberController,
     dashboardAgentTrackingOrganizationSettingsController,
@@ -847,6 +859,9 @@ export let dashboardController = Controller.create<any>(
 
     consumerController,
     consumerDeviceManagementController,
+    consumerDeviceSettingsController,
+    aiToolController,
+    aiToolDetectionController,
     consumerSurfaceController,
     sessionController,
 

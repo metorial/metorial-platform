@@ -10,12 +10,22 @@ export let individualsHiddenError = createError({
   hint: 'An organization admin can turn off Hide Individuals in the Agent Usage settings.'
 });
 
+export let loadSettings = (scope: Pick<ReadScope, 'organization'>) =>
+  agentTrackingSettingsService.getOrganizationValues(scope);
+
 export let loadPrivacy = async (scope: Pick<ReadScope, 'organization'>) =>
-  await agentTrackingSettingsService.getPrivacy({ organization: scope.organization });
+  (await loadSettings(scope)).privacy;
 
-export let loadVisiblePrivacy = async (scope: Pick<ReadScope, 'organization'>) => {
-  let privacy = await loadPrivacy(scope);
-  if (privacy.hideIndividuals) throw new ServiceError(individualsHiddenError);
+export let loadVisibleSettings = async (
+  scope: Pick<ReadScope, 'organization'>,
+  hiddenError: ConstructorParameters<typeof ServiceError>[0] = individualsHiddenError
+) => {
+  let settings = await loadSettings(scope);
+  if (settings.privacy.hideIndividuals) throw new ServiceError(hiddenError);
 
-  return privacy;
+  return settings;
+};
+
+export let assertIndividualsVisible = async (scope: Pick<ReadScope, 'organization'>) => {
+  await loadVisibleSettings(scope);
 };

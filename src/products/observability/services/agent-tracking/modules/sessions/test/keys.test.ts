@@ -3,6 +3,7 @@ import { buildDraft, unitPrincipal } from '@mtsrc/agent-tracking-dialects/test/b
 import {
   buildInferKey,
   correlationKey,
+  documentCorrelations,
   isInferable,
   orphanKey,
   recordActor,
@@ -120,5 +121,19 @@ describe('isInferable', () => {
       client: { family: 'claude-code' }
     });
     expect(isInferable(measurement)).toBe(false);
+  });
+});
+
+describe('correlations', () => {
+  it('takes no correlation from an all-zero trace id, also on stored documents', () => {
+    let zero = '0'.repeat(32);
+
+    expect(recordCorrelations(event({ trace: { traceId: zero }, turnId: 'turn-1' }))).toEqual([
+      { type: 'turn', value: 'turn-1' }
+    ]);
+    expect(documentCorrelations({ ctx: { trace: { traceId: zero } } })).toEqual([]);
+    expect(documentCorrelations({ ctx: { trace: { traceId: 'abc123' } } })).toEqual([
+      { type: 'trace', value: 'abc123' }
+    ]);
   });
 });

@@ -67,6 +67,7 @@ let sliceOf = (
   userId: d.userId,
   workspaceIds: [],
   repoIds: [],
+  ticketRefs: [],
   dims: [],
   dimIds: [],
   client: { family: d.family },

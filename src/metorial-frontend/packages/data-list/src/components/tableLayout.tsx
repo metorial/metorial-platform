@@ -53,6 +53,31 @@ let TableCell = styled('td')`
   text-align: left;
 `;
 
+let TableLinkedCell = styled(TableCell)`
+  position: relative;
+`;
+
+let TableStretchedLink = styled(Link)`
+  position: absolute;
+  inset: 0;
+`;
+
+let TableLinkedCellContent = styled('div')`
+  position: relative;
+  pointer-events: none;
+
+  & a,
+  & button,
+  & input,
+  & textarea,
+  & select,
+  & summary,
+  & [role='button'],
+  & [role='menuitem'] {
+    pointer-events: auto;
+  }
+`;
+
 let TableSelectCell = styled(TableCell)`
   background: ${theme.colors.background};
   position: sticky;
@@ -234,6 +259,15 @@ export let DataListTableLayout = ({
                     let cell = (
                       <TableCellInner>{column.render(row, props, ctx)}</TableCellInner>
                     );
+
+                    if (to && column.interactive) {
+                      return (
+                        <TableLinkedCell key={column.id}>
+                          <TableStretchedLink to={to} tabIndex={-1} aria-hidden />
+                          <TableLinkedCellContent>{cell}</TableLinkedCellContent>
+                        </TableLinkedCell>
+                      );
+                    }
 
                     return (
                       <TableCell key={column.id}>

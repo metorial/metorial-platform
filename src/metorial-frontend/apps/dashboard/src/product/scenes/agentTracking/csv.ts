@@ -79,7 +79,7 @@ let yesNo = (value: boolean) => (value ? 'Yes' : 'No');
 
 let percentCell = (rate: number) => numericCell(String(fractionToPercent(rate)));
 
-let shareCell = (share: number | null) =>
+export let shareCell = (share: number | null) =>
   share === null ? null : numericCell(fractionToPercent(share).toFixed(2));
 
 let section = (title: string, header: string[], rows: CsvCell[][]): CsvCell[][] => [

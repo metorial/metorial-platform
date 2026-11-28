@@ -19,6 +19,7 @@ import {
   oauthAuthorizationService,
   type OAuthTokenWithAuthorization
 } from '@metorial/module-machine-access';
+import { visibleDetectionWhere } from '../lib/aiToolDetection';
 
 // The AI tools Metorial Desktop reports. Client types are shared by every
 // instance, so other keys are skipped rather than stored. A newer app that
@@ -26,6 +27,8 @@ import {
 let knownClientKeys = new Set(['claude-code', 'claude-desktop', 'codex', 'cursor', 'vscode']);
 
 export let consumerDeviceStatuses = Object.values(ConsumerDeviceStatus);
+
+export type ReportedSkillAccess = 'any' | 'none' | { where: Prisma.SkillWhereInput };
 
 export let consumerDeviceInclude = {
   clients: {
@@ -37,6 +40,7 @@ export let consumerDeviceInclude = {
       excludedSkills: { orderBy: { oid: 'asc' }, include: { skill: true } }
     }
   },
+  detections: { where: visibleDetectionWhere(), orderBy: { toolKey: 'asc' } },
   consumerProfile: true
 } satisfies Prisma.ConsumerDeviceInclude;
 
@@ -50,6 +54,7 @@ class ConsumerDeviceServiceImpl {
     consumerProfile: ConsumerProfile;
     oauthToken: OAuthTokenWithAuthorization | undefined;
     auditScope: AuditScope;
+    skillAccess: ReportedSkillAccess;
     input: {
       installationId: string;
       name: string;
@@ -64,6 +69,7 @@ class ConsumerDeviceServiceImpl {
         supportsSkills: boolean;
       }[];
       magicMcpTokenIds?: string[];
+      reportedSkills?: { skillId: string; name: string }[];
     };
   }) {
     let oauthToken = this.assertDeviceSignIn(d.oauthToken);
@@ -92,6 +98,7 @@ class ConsumerDeviceServiceImpl {
           if (existing.status != 'active') throw this.endedSignInError();
 
           await this.syncReportedClients({ ...d, consumerDevice: existing });
+          await this.syncReportedSkills({ ...d, consumerDevice: existing });
           await this.linkInstallTokens({ ...d, consumerDevice: existing });
 
           return await db.consumerDevice.update({
@@ -143,11 +150,13 @@ class ConsumerDeviceServiceImpl {
             ...details,
             status: 'active',
             revokedAt: null,
-            oauthTokenOid: oauthToken.oid
+            oauthTokenOid: oauthToken.oid,
+            detectionSeq: null
           }
         });
 
         await this.syncReportedClients({ ...d, consumerDevice: enrolled });
+        await this.syncReportedSkills({ ...d, consumerDevice: enrolled });
         await this.linkInstallTokens({ ...d, consumerDevice: enrolled });
 
         let consumerDevice = await db.consumerDevice.findUniqueOrThrow({
@@ -392,6 +401,8 @@ class ConsumerDeviceServiceImpl {
         data: {
           status: d.status,
           revokedAt: d.status == 'revoked' ? new Date() : null,
+          detectionSeq: null,
+          detectionReportedAt: null,
           ...(d.signInMoved ? { oauthTokenOid: null } : {})
         }
       });
@@ -401,6 +412,9 @@ class ConsumerDeviceServiceImpl {
         );
       }
 
+      await db.consumerDeviceDetection.deleteMany({
+        where: { consumerDeviceOid: d.consumerDevice.oid }
+      });
       if (d.consumerDevice.oauthTokenOid && !d.signInMoved) {
         await oauthAuthorizationService.revokeOAuthToken({
           oauthToken: { oid: d.consumerDevice.oauthTokenOid }
@@ -517,6 +531,68 @@ class ConsumerDeviceServiceImpl {
         },
         data: { reported: false }
       });
+    });
+  }
+
+  private async syncReportedSkills(d: {
+    instance: Instance;
+    consumerDevice: Pick<ConsumerDevice, 'oid'>;
+    skillAccess: ReportedSkillAccess;
+    input: { reportedSkills?: { skillId: string; name: string }[] };
+  }) {
+    if (!d.input.reportedSkills) return;
+
+    let reportedSkills = d.skillAccess == 'none' ? [] : d.input.reportedSkills;
+    let skillAccess = d.skillAccess;
+
+    await withTransaction(async db => {
+      let skills = reportedSkills.length
+        ? await db.skill.findMany({
+            where: {
+              id: { in: [...new Set(reportedSkills.map(skill => skill.skillId))] },
+              instanceOid: d.instance.oid,
+              status: 'active',
+              ...(typeof skillAccess == 'object' ? { AND: [skillAccess.where] } : {})
+            }
+          })
+        : [];
+      let skillOids = new Map(skills.map(skill => [skill.id, skill.oid]));
+
+      let wanted = new Map<string, bigint>();
+      for (let reported of reportedSkills) {
+        let skillOid = skillOids.get(reported.skillId);
+        if (skillOid !== undefined && !wanted.has(reported.name)) {
+          wanted.set(reported.name, skillOid);
+        }
+      }
+
+      let existing = await db.consumerDeviceSkill.findMany({
+        where: { consumerDeviceOid: d.consumerDevice.oid }
+      });
+      let kept = existing.filter(row => wanted.get(row.name) === row.skillOid);
+      let keptNames = new Set(kept.map(row => row.name));
+      let stale = existing.filter(row => !keptNames.has(row.name));
+
+      if (stale.length) {
+        await db.consumerDeviceSkill.deleteMany({
+          where: { oid: { in: stale.map(row => row.oid) } }
+        });
+      }
+
+      let added = [...wanted].filter(([name]) => !keptNames.has(name));
+      if (added.length) {
+        await db.consumerDeviceSkill.createMany({
+          data: await Promise.all(
+            added.map(async ([name, skillOid]) => ({
+              id: await ID.generateId('consumerDeviceSkill'),
+              name,
+              consumerDeviceOid: d.consumerDevice.oid,
+              skillOid,
+              instanceOid: d.instance.oid
+            }))
+          )
+        });
+      }
     });
   }
 

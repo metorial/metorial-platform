@@ -1,5 +1,5 @@
-import { useAgentTrackingInstanceSettings } from '@metorial/state';
 import { useAgentTrackingAvailability } from '../access';
+import { useAgentTrackingIndividualsVisibility } from '../privacy';
 import { showDeleteTeamViewDialog, showTeamViewNameDialog } from './dialogs';
 import type { SavedTeamView } from './saved';
 import { canSaveTeamView, useTeamViewSearch } from './state';
@@ -9,11 +9,11 @@ export let useTeamViewActions = (d: {
   onTeamPage: boolean;
 }) => {
   let { canWrite } = useAgentTrackingAvailability();
-  let settings = useAgentTrackingInstanceSettings(d.instanceId);
+  let { visibility } = useAgentTrackingIndividualsVisibility({ enabled: !!d.instanceId });
   let { current, apply } = useTeamViewSearch();
 
   // The sidebar renders outside the Team page's privacy gate, so check the setting here too.
-  let canCreate = canWrite && settings.data?.privacy.hideIndividuals === false;
+  let canCreate = canWrite && visibility == 'visible';
 
   let latestSavable = () => {
     let latest = current();

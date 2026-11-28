@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   buildClaudeCodeManagedSettings,
   buildManagedSettingsCommands,
-  claudeCodeLogsEndpoint,
   defaultClaudeCodeSettingsOptions,
   detectManagedSettingsOs,
   ingestionKeyPlaceholder,
-  managedSettingsLocations
+  isOffForOrganization,
+  managedSettingsLocations,
+  organizationSwitchLabel,
+  otlpLogsEndpoint,
+  withOrganizationReporting
 } from './settingsFile';
 
 let ingestUrl = 'https://agent-tracking-ingest.example.com';
@@ -17,7 +20,7 @@ describe('buildClaudeCodeManagedSettings', () => {
     let file = buildClaudeCodeManagedSettings({
       ingestUrl,
       secret,
-      options: defaultClaudeCodeSettingsOptions
+      options: defaultClaudeCodeSettingsOptions(null)
     });
 
     expect(file.json).toBe(
@@ -43,12 +46,12 @@ describe('buildClaudeCodeManagedSettings', () => {
     let off = buildClaudeCodeManagedSettings({
       ingestUrl,
       secret,
-      options: defaultClaudeCodeSettingsOptions
+      options: defaultClaudeCodeSettingsOptions(null)
     });
     let on = buildClaudeCodeManagedSettings({
       ingestUrl,
       secret,
-      options: { ...defaultClaudeCodeSettingsOptions, toolDetails: true }
+      options: { ...defaultClaudeCodeSettingsOptions(null), toolDetails: true }
     });
 
     expect(off.settings.env).not.toHaveProperty('OTEL_LOG_TOOL_DETAILS');
@@ -102,7 +105,7 @@ describe('buildClaudeCodeManagedSettings', () => {
       let file = buildClaudeCodeManagedSettings({
         ingestUrl,
         secret: missing,
-        options: defaultClaudeCodeSettingsOptions
+        options: defaultClaudeCodeSettingsOptions(null)
       });
 
       expect(file.usesPlaceholder).toBe(true);
@@ -116,7 +119,7 @@ describe('buildClaudeCodeManagedSettings', () => {
     let file = buildClaudeCodeManagedSettings({
       ingestUrl: ' https://ingest.example.com// ',
       secret,
-      options: defaultClaudeCodeSettingsOptions
+      options: defaultClaudeCodeSettingsOptions(null)
     });
 
     expect(file.settings.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT).toBe(
@@ -149,7 +152,7 @@ describe('buildManagedSettingsCommands', () => {
   let file = buildClaudeCodeManagedSettings({
     ingestUrl,
     secret,
-    options: defaultClaudeCodeSettingsOptions
+    options: defaultClaudeCodeSettingsOptions(null)
   });
 
   it('creates the macOS folder and quotes the path with a space', () => {
@@ -206,7 +209,7 @@ describe('buildManagedSettingsCommands', () => {
   it('points the check at the line that holds the ingest address', () => {
     let line = file.json.split('\n').find(line => line.includes('LOGS_ENDPOINT'));
 
-    expect(line).toContain(claudeCodeLogsEndpoint(ingestUrl));
+    expect(line).toContain(otlpLogsEndpoint(ingestUrl));
   });
 });
 
@@ -220,5 +223,90 @@ describe('detectManagedSettingsOs', () => {
     [undefined, 'macos']
   ])('reads %s as %s', (platform, os) => {
     expect(detectManagedSettingsOs(platform)).toBe(os);
+  });
+});
+
+describe('withOrganizationReporting', () => {
+  let allOn = { keepLocalHistory: true, repository: true, toolDetails: true };
+
+  it('keeps the chosen options while the organization switches are on', () => {
+    let options = withOrganizationReporting(allOn, {
+      toolDetails: true,
+      sessionContext: true
+    });
+
+    expect(options).toEqual(allOn);
+    expect(buildClaudeCodeManagedSettings({ ingestUrl, secret, options }).json).toBe(
+      buildClaudeCodeManagedSettings({ ingestUrl, secret, options: allOn }).json
+    );
+  });
+
+  it('keeps the chosen options while the organization settings are not loaded', () => {
+    expect(withOrganizationReporting(allOn, undefined)).toEqual(allOn);
+    expect(withOrganizationReporting(allOn, null)).toEqual(allOn);
+  });
+
+  it('turns tool details off in the file while the organization has them off', () => {
+    let options = withOrganizationReporting(allOn, {
+      toolDetails: false,
+      sessionContext: true
+    });
+    let { env } = buildClaudeCodeManagedSettings({ ingestUrl, secret, options }).settings;
+
+    expect(options).toEqual({ ...allOn, toolDetails: false });
+    expect(env).not.toHaveProperty('OTEL_LOG_TOOL_DETAILS');
+    expect(env.OTEL_METRICS_INCLUDE_REPOSITORY).toBe('true');
+  });
+
+  it('turns the repository off in the file while the organization has session context off', () => {
+    let options = withOrganizationReporting(allOn, {
+      toolDetails: true,
+      sessionContext: false
+    });
+    let { env } = buildClaudeCodeManagedSettings({ ingestUrl, secret, options }).settings;
+
+    expect(options).toEqual({ ...allOn, repository: false });
+    expect(env).not.toHaveProperty('OTEL_METRICS_INCLUDE_REPOSITORY');
+    expect(env.OTEL_LOG_TOOL_DETAILS).toBe('1');
+  });
+});
+
+describe('isOffForOrganization', () => {
+  let off = { toolDetails: false, sessionContext: false };
+
+  it('locks only the options that follow an organization switch', () => {
+    expect(isOffForOrganization('toolDetails', off)).toBe(true);
+    expect(isOffForOrganization('repository', off)).toBe(true);
+    expect(isOffForOrganization('keepLocalHistory', off)).toBe(false);
+  });
+
+  it('locks nothing while the switches are on or not loaded', () => {
+    let on = { toolDetails: true, sessionContext: true };
+
+    for (let organization of [on, null, undefined]) {
+      expect(isOffForOrganization('toolDetails', organization)).toBe(false);
+      expect(isOffForOrganization('repository', organization)).toBe(false);
+    }
+  });
+});
+
+describe('defaultClaudeCodeSettingsOptions', () => {
+  it('turns tool details on only when the organization has Detailed Tool Reporting on', () => {
+    expect(defaultClaudeCodeSettingsOptions(null).toolDetails).toBe(false);
+    expect(
+      defaultClaudeCodeSettingsOptions({ toolDetails: false, sessionContext: true })
+        .toolDetails
+    ).toBe(false);
+    expect(
+      defaultClaudeCodeSettingsOptions({ toolDetails: true, sessionContext: true })
+    ).toEqual({ keepLocalHistory: true, repository: true, toolDetails: true });
+  });
+});
+
+describe('organizationSwitchLabel', () => {
+  it('names the organization switch an option follows', () => {
+    expect(organizationSwitchLabel('toolDetails')).toBe('Detailed Tool Reporting');
+    expect(organizationSwitchLabel('repository')).toBe('Session Context');
+    expect(organizationSwitchLabel('keepLocalHistory')).toBeNull();
   });
 });

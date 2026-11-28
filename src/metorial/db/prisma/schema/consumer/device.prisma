@@ -26,12 +26,17 @@ model ConsumerDevice {
   oauthTokenOid BigInt?     @unique
   oauthToken    OAuthToken? @relation(fields: [oauthTokenOid], references: [oid], onDelete: SetNull)
 
+  detectionSeq        Int?
+  detectionReportedAt DateTime?
+
   lastSeenAt DateTime  @default(now())
   revokedAt  DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
 
   clients                   ConsumerDeviceClient[]
+  detections                ConsumerDeviceDetection[]
+  skills                    ConsumerDeviceSkill[]
   magicMcpTokens            MagicMcpToken[]
   agentTrackingIngestTokens AgentTrackingIngestToken[]
 
@@ -108,4 +113,96 @@ model ConsumerDeviceClientExcludedSkill {
 
   @@unique([consumerDeviceClientOid, skillOid])
   @@index([skillOid])
+}
+
+model ConsumerDeviceSkill {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name String
+
+  createdAt DateTime @default(now())
+
+  consumerDeviceOid BigInt
+  consumerDevice    ConsumerDevice @relation(fields: [consumerDeviceOid], references: [oid], onDelete: Cascade)
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  @@unique([consumerDeviceOid, name])
+  @@index([instanceOid, name])
+  @@index([skillOid])
+}
+
+enum ConsumerDeviceDetectionState {
+  installed
+  running
+}
+
+enum ConsumerDeviceDetectionConfidence {
+  high
+  medium
+  low
+}
+
+enum ConsumerDeviceDetectionSignalKind {
+  config_dir
+  app
+  path
+  ide_extension
+  process
+}
+
+model ConsumerDeviceDetection {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  toolKey String
+
+  state       ConsumerDeviceDetectionState
+  confidence  ConsumerDeviceDetectionConfidence
+  signalKinds ConsumerDeviceDetectionSignalKind[]
+  version     String?
+
+  firstSeenAt DateTime
+  lastSeenAt  DateTime
+  goneAt      DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  consumerDeviceOid BigInt
+  consumerDevice    ConsumerDevice @relation(fields: [consumerDeviceOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  @@unique([consumerDeviceOid, toolKey])
+  @@index([instanceOid, toolKey, goneAt])
+}
+
+enum ConsumerDeviceConnectionMode {
+  local_proxy
+  direct
+}
+
+model ConsumerDeviceSettings {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  aiToolDetectionEnabled Boolean @default(false)
+
+  connectionMode ConsumerDeviceConnectionMode @default(local_proxy)
+
+  privacyNoticeAcceptedAt DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @default(now()) @updatedAt
+
+  instanceOid BigInt   @unique
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  privacyNoticeAcceptedByActorOid BigInt?
+  privacyNoticeAcceptedByActor    OrganizationActor? @relation(fields: [privacyNoticeAcceptedByActorOid], references: [oid], onDelete: SetNull)
 }

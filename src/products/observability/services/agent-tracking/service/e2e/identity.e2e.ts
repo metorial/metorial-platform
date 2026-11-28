@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   acceptedStatus,
+  createHookToken,
   createSource,
   createToken,
   agentTracking,
@@ -52,10 +53,7 @@ describe('identity attribution', () => {
   it('stamps the bound user, device and a discovered agent', async () => {
     let { organization, instance, token, secret } = await createToken();
 
-    let response = await ingest('/v1/ingest/hooks/claude-code', {
-      credential: secret,
-      body: hook()
-    });
+    let response = await ingest('/v1/logs', { credential: secret, body: claudeLogs({}) });
     expect(response.status).toBe(acceptedStatus);
 
     let [item] = await instanceRecords(instance);
@@ -140,7 +138,7 @@ describe('identity attribution', () => {
   });
 
   it('turns hook git context into a session.context record with repo and workspace', async () => {
-    let { organization, instance, secret } = await createToken();
+    let { organization, instance, secret } = await createHookToken();
 
     let response = await ingest('/v1/ingest/hooks/claude-code', {
       credential: secret,

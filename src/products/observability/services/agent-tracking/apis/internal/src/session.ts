@@ -1,5 +1,5 @@
 import { v } from '@lowerdeck/validation';
-import { sessionPresenter } from './presenters/session';
+import { sessionPresenter, sessionTitlesShown } from './presenters/session';
 import {
   maxSessionPageSize,
   sessionListOrders,
@@ -10,6 +10,7 @@ import {
 import { organizationApp } from './_app';
 import { sessionAttributionRoutes } from './sessionAttribution';
 import { sessionClassificationRoutes } from './sessionClassification';
+import { sessionToolCallRoutes } from './sessionToolCalls';
 
 let idsSchema = v.optional(v.array(v.string()));
 
@@ -23,7 +24,7 @@ export let sessionRoutes = {
         sessionKey: ctx.input.sessionKey
       });
 
-      return sessionPresenter(session);
+      return sessionPresenter({ session, titles: sessionTitlesShown(ctx.organization) });
     }),
 
   list: organizationApp
@@ -39,6 +40,11 @@ export let sessionRoutes = {
         agentIds: idsSchema,
         modelIds: v.optional(v.array(v.nullable(v.string()))),
         clientFamilies: idsSchema,
+        repoIds: idsSchema,
+        branches: idsSchema,
+        ticketRefs: idsSchema,
+        pullRequests: idsSchema,
+        metorialProviderIds: idsSchema,
         states: v.optional(v.array(v.enumOf(sessionStates))),
         from: v.optional(v.date()),
         to: v.optional(v.date()),
@@ -65,6 +71,11 @@ export let sessionRoutes = {
           agentIds: ctx.input.agentIds,
           modelIds: ctx.input.modelIds,
           clientFamilies: ctx.input.clientFamilies,
+          repoIds: ctx.input.repoIds,
+          branches: ctx.input.branches,
+          ticketRefs: ctx.input.ticketRefs,
+          pullRequests: ctx.input.pullRequests,
+          metorialProviderIds: ctx.input.metorialProviderIds,
           states: ctx.input.states,
           from: ctx.input.from,
           to: ctx.input.to,
@@ -78,9 +89,11 @@ export let sessionRoutes = {
         before: ctx.input.before
       });
 
+      let titles = sessionTitlesShown(ctx.organization);
+
       return {
         object: 'list',
-        items: page.items.map(sessionPresenter),
+        items: page.items.map(session => sessionPresenter({ session, titles })),
         pagination: {
           hasMoreAfter: page.hasMoreAfter,
           hasMoreBefore: page.hasMoreBefore,
@@ -94,5 +107,6 @@ export let sessionRoutes = {
 export let sessionController = organizationApp.controller({
   ...sessionRoutes,
   ...sessionAttributionRoutes,
-  ...sessionClassificationRoutes
+  ...sessionClassificationRoutes,
+  ...sessionToolCallRoutes
 });

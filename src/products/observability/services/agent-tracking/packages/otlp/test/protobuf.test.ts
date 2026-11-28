@@ -100,6 +100,26 @@ describe('decodeLogsProtobuf', () => {
     expect(first!.items[1]!.body).toEqual({ structured: 'body', n: 2 });
   });
 
+  it('falls back to the observed time when the event time is zero or missing', () => {
+    let decoded = decodeLogsProtobuf(
+      encodeLogsRequest([
+        {
+          items: [
+            { timeNs: 0n, observedTimeNs: 1_795_608_241_821_275_000n },
+            { observedTimeNs: 1_795_608_241_821_309_000n },
+            { timeNs: 1_795_608_241_000_000_000n, observedTimeNs: 1_795_608_241_821_309_000n }
+          ]
+        }
+      ])
+    );
+
+    expect(decoded.groups[0]!.items.map(item => [item.timeNs, item.observedTimeNs])).toEqual([
+      [1_795_608_241_821_275_000n, 1_795_608_241_821_275_000n],
+      [1_795_608_241_821_309_000n, 1_795_608_241_821_309_000n],
+      [1_795_608_241_000_000_000n, 1_795_608_241_821_309_000n]
+    ]);
+  });
+
   it('returns an empty result for an empty body', () => {
     expect(decodeLogsProtobuf(new Uint8Array())).toEqual({
       groups: [],

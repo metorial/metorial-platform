@@ -28,6 +28,10 @@ export type SessionAssignment = {
 
 let occurredAt = (record: NormalizedRecord) => new Date(record.occurred_at);
 
+// Non-primary records never open an inferred session and join one only inside its window, so
+// they cannot create or extend one.
+let opensSession = (record: NormalizedRecord) => record.source.role == 'primary';
+
 export let inferredGapMs = (principal: IngestPrincipal) =>
   (principal.instance.settings.inferredSessionGapMinutes ?? defaultGapMinutes) * minuteMs;
 
@@ -188,19 +192,26 @@ let assignInferred = async (d: {
     let states = loaded ? [loaded] : [];
 
     let sorted = [...group.records].sort(
-      (a, b) => occurredAt(a).getTime() - occurredAt(b).getTime()
+      (a, b) =>
+        Number(opensSession(b)) - Number(opensSession(a)) ||
+        occurredAt(a).getTime() - occurredAt(b).getTime()
     );
 
     for (let record of sorted) {
       let at = occurredAt(record);
 
+      let opens = opensSession(record);
+      let slackMs = opens ? gapMs : 0;
+
       let state = states.findLast(
         candidate =>
-          at.getTime() <= candidate.lastActivityAt.getTime() + gapMs &&
-          at.getTime() >= candidate.startedAt.getTime() - gapMs
+          at.getTime() <= candidate.lastActivityAt.getTime() + slackMs &&
+          at.getTime() >= candidate.startedAt.getTime() - slackMs
       );
 
       if (!state) {
+        if (!opens) continue;
+
         state = {
           sessionKey: deriveSessionKey(
             d.organizationKey,
@@ -221,6 +232,8 @@ let assignInferred = async (d: {
       record.ctx.session_origin = 'inferred';
       d.assignment.inferKeys.set(state.sessionKey, inferKey);
     }
+
+    if (!states.length) continue;
 
     let latest = states.reduce((a, b) => (b.lastActivityAt > a.lastActivityAt ? b : a));
     d.assignment.inferred.set(inferKey, latest);

@@ -21,10 +21,12 @@ import {
   SessionLinkSchema,
   SessionSchema,
   SourceHealthSchema,
+  ToolCallLinkSchema,
   UsageSliceSchema,
   type SessionDocument,
   type SessionLinkDocument,
   type SourceHealthDocument,
+  type ToolCallLinkDocument,
   type UsageSliceDocument
 } from './derivedModels';
 
@@ -86,6 +88,7 @@ export type StoreCollections = {
   sessionLinks: mongoose.mongo.Collection<SessionLinkDocument>;
   usageSlices: mongoose.mongo.Collection<UsageSliceDocument>;
   sourceHealth: mongoose.mongo.Collection<SourceHealthDocument>;
+  toolCallLinks: mongoose.mongo.Collection<ToolCallLinkDocument>;
 };
 
 export type Store = {
@@ -96,6 +99,7 @@ export type Store = {
   sessionLinks: mongoose.Model<SessionLinkDocument>;
   usageSlices: mongoose.Model<UsageSliceDocument>;
   sourceHealth: mongoose.Model<SourceHealthDocument>;
+  toolCallLinks: mongoose.Model<ToolCallLinkDocument>;
 
   collections: () => StoreCollections;
   assertQuerySupport: () => Promise<string>;
@@ -142,6 +146,11 @@ export let createStore = (url: string): Store => {
     SourceHealthSchema,
     derivedCollectionNames.sourceHealth
   );
+  let toolCallLinks = connection.model<ToolCallLinkDocument>(
+    'ToolCallLink',
+    ToolCallLinkSchema,
+    derivedCollectionNames.toolCallLinks
+  );
 
   let opening: Promise<void> | null = null;
   let connected = false;
@@ -180,7 +189,8 @@ export let createStore = (url: string): Store => {
       sessions,
       sessionLinks,
       usageSlices,
-      sourceHealth
+      sourceHealth,
+      toolCallLinks
     ];
     let startedAt = Date.now();
 
@@ -212,6 +222,7 @@ export let createStore = (url: string): Store => {
     sessionLinks,
     usageSlices,
     sourceHealth,
+    toolCallLinks,
 
     collections: () => {
       let db = connection.db;
@@ -224,7 +235,10 @@ export let createStore = (url: string): Store => {
         sessions: db.collection<SessionDocument>(derivedCollectionNames.sessions),
         sessionLinks: db.collection<SessionLinkDocument>(derivedCollectionNames.sessionLinks),
         usageSlices: db.collection<UsageSliceDocument>(derivedCollectionNames.usageSlices),
-        sourceHealth: db.collection<SourceHealthDocument>(derivedCollectionNames.sourceHealth)
+        sourceHealth: db.collection<SourceHealthDocument>(derivedCollectionNames.sourceHealth),
+        toolCallLinks: db.collection<ToolCallLinkDocument>(
+          derivedCollectionNames.toolCallLinks
+        )
       };
     },
 

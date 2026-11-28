@@ -15,7 +15,7 @@ import { formatAmount, fractionToPercent } from './costFormat';
 import { buildSpendReportCsv, spendReportCsvFileName } from './csv';
 import { agentTrackingErrorFor, PrivacySettingsButton } from './errorState';
 import { WithInfo } from './info';
-import { useAgentTrackingPrivacy } from './privacy';
+import { useAgentTrackingIndividualsVisibility } from './privacy';
 import { formatAgentTrackingRange, getBrowserTimeZone } from './range';
 import {
   currentYearIn,
@@ -557,15 +557,10 @@ let ReportPage = ({
 };
 
 export let AgentTrackingReport = ({ instanceId }: { instanceId: string }) => {
-  let settings = useAgentTrackingPrivacy();
+  let { visibility, settings } = useAgentTrackingIndividualsVisibility();
 
   return renderWithLoader(
     { settings },
     { error: agentTrackingErrorFor(settings) }
-  )(({ settings }) => (
-    <ReportPage
-      instanceId={instanceId}
-      individualsHidden={settings.data.privacy.hideIndividuals}
-    />
-  ));
+  )(() => <ReportPage instanceId={instanceId} individualsHidden={visibility == 'hidden'} />);
 };

@@ -7,8 +7,18 @@ import {
   timelineQuery,
   unknownModelsQuery
 } from '../src/lib/queries';
+import { spendFiguresOf } from '../src/lib/spend';
 import { agentTrackingSpendService } from '../src/services/agentTrackingSpend';
-import { callsTo, consumers, remoteMember, resetMocks, rpc, scope } from './_mocks';
+import {
+  callsTo,
+  consumers,
+  links,
+  remoteMember,
+  remoteRepository,
+  resetMocks,
+  rpc,
+  scope
+} from './_mocks';
 
 let resolved = {
   preset: null,
@@ -28,12 +38,11 @@ let figures = (cost: number | null, extra: Record<string, unknown> = {}) => ({
 });
 
 describe('spend query documents', () => {
-  it('asks for the top 10 by cost with shares, an other row and requests without prices', () => {
+  it('asks for the top 10 by cost, an other row, totals and usage without prices', () => {
     let byMember = breakdownQuery({ range: resolved, groupBy: 'member' });
 
     expect(byMember).toMatchObject({
       dimensions: ['user'],
-      derived: [{ as: 'share', expr: { shareOfTotal: 'cost.usd' }, format: 'percent' }],
       orderBy: [{ by: 'cost.usd', direction: 'desc' }],
       limit: 10,
       other: true,
@@ -55,11 +64,181 @@ describe('spend query documents', () => {
           field: 'requests',
           where: { field: 'cost.list', op: 'isNull' },
           as: 'requests_without_list_price'
+        },
+        {
+          fn: 'sum',
+          field: 'tokens.total',
+          where: { field: 'cost.usd', op: 'isNull' },
+          as: 'tokens_without_cost'
+        },
+        {
+          fn: 'sum',
+          field: 'tokens.total',
+          where: { field: 'cost.list', op: 'isNull' },
+          as: 'tokens_without_list_price'
         }
       ])
     );
+    expect(byMember).not.toHaveProperty('derived');
     expect(timelineQuery(resolved)).toMatchObject({ dimensions: ['time.day'], totals: true });
     expect(periodTotalQuery(resolved)).not.toHaveProperty('dimensions');
+  });
+});
+
+describe('spend breakdowns by repository, branch and ticket', () => {
+  beforeEach(() => resetMocks());
+
+  it('groups usage by its repository, branch and ticket fields', () => {
+    expect(
+      (['repository', 'branch', 'ticket'] as const).map(
+        groupBy => breakdownQuery({ range: resolved, groupBy }).dimensions
+      )
+    ).toEqual([['repo'], ['branch'], ['ticket']]);
+  });
+
+  it('names repositories in one lookup and keeps usage without one as unknown', async () => {
+    rpc.handlers['query:run'] = () => ({
+      rows: [
+        { repo: 'aten_repo', ...figures(5), share: 0.8 },
+        { repo: null, ...figures(1), share: 0.2 },
+        { repo: '$other', ...figures(1), share: 0.2 }
+      ],
+      totals: figures(6),
+      labels: { repo: { aten_repo: { name: 'acme/api' } } }
+    });
+    rpc.handlers['entity:list'] = () => ({ items: [remoteRepository()], pagination: {} });
+
+    let breakdown = await agentTrackingSpendService.getBreakdown({
+      ...scope,
+      groupBy: 'repository',
+      range: {}
+    });
+
+    expect(callsTo('query:run')[0]!.input.query.dimensions).toEqual(['repo']);
+    expect(callsTo('entity:list')).toHaveLength(1);
+    expect(callsTo('entity:list')[0]!.input).toMatchObject({
+      kinds: ['repo'],
+      ids: ['aten_repo']
+    });
+    expect(breakdown.groupBy).toBe('repository');
+    expect(breakdown.items.map(item => [item.kind, item.key, item.repository?.name])).toEqual([
+      ['repository', 'aten_repo', 'api'],
+      ['unknown', 'unknown', undefined],
+      ['other', 'other', undefined]
+    ]);
+    expect(breakdown.items[0]!.repository).toEqual({
+      id: 'aten_repo',
+      provider: 'github.com',
+      host: 'github.com',
+      owner: 'acme',
+      name: 'api',
+      url: 'https://github.com/acme/api'
+    });
+  });
+
+  it('links ticket rows with the template of the organization, cached per template', async () => {
+    rpc.handlers['query:run'] = () => ({
+      rows: [{ ticket: 'A&B-3', ...figures(5), share: 1 }],
+      totals: figures(5),
+      labels: {}
+    });
+    let read = () =>
+      agentTrackingSpendService.getBreakdown({ ...scope, groupBy: 'ticket', range: {} });
+
+    expect((await read()).items[0]!.ticket).toEqual({ key: 'A&B-3', url: null });
+
+    links.ticketUrlTemplate = 'https://linear.app/acme/issue/{key}';
+    expect((await read()).items[0]!.ticket).toEqual({
+      key: 'A&B-3',
+      url: 'https://linear.app/acme/issue/A%26B-3'
+    });
+    expect(callsTo('query:run')).toHaveLength(2);
+  });
+
+  it('shares each repository of a session in its full cost of the total spend', async () => {
+    rpc.handlers['query:run'] = () => ({
+      rows: [
+        { repo: 'aten_repo', ...figures(10), share: 0.5 },
+        { repo: 'aten_web', ...figures(10), share: 0.5 }
+      ],
+      totals: figures(10),
+      labels: {}
+    });
+    rpc.handlers['entity:list'] = () => ({ items: [], pagination: {} });
+
+    let breakdown = await agentTrackingSpendService.getBreakdown({
+      ...scope,
+      groupBy: 'repository',
+      range: {}
+    });
+
+    expect(breakdown.total.cost.totalMicros).toBe(10_000_000);
+    expect(breakdown.items.map(item => [item.key, item.share])).toEqual([
+      ['aten_repo', 1],
+      ['aten_web', 1]
+    ]);
+  });
+
+  it('has no share when the total spend is zero, and shares every group of the total', async () => {
+    rpc.handlers['query:run'] = ({ query }) => ({
+      rows:
+        query.dimensions[0] == 'model'
+          ? [{ model: 'claude-sonnet-4-5', ...figures(4), share: 0.25 }]
+          : [{ branch: 'main', ...figures(0), share: 0.3 }],
+      totals: query.dimensions[0] == 'model' ? figures(16) : figures(0),
+      labels: {}
+    });
+
+    let branches = await agentTrackingSpendService.getBreakdown({
+      ...scope,
+      groupBy: 'branch',
+      range: {}
+    });
+    let models = await agentTrackingSpendService.getBreakdown({
+      ...scope,
+      groupBy: 'model',
+      range: {}
+    });
+
+    expect(branches.items.map(item => item.share)).toEqual([null]);
+    expect(models.items.map(item => item.share)).toEqual([0.25]);
+  });
+
+  it('keys branches and tickets by their value, a session counting in each of its tickets', async () => {
+    rpc.handlers['query:run'] = ({ query }) => ({
+      rows:
+        query.dimensions[0] == 'ticket'
+          ? [
+              { ticket: 'ENG-12', ...figures(5), share: 1 },
+              { ticket: 'ENG-13', ...figures(5), share: 1 }
+            ]
+          : [{ branch: 'main', ...figures(5), share: 1 }],
+      totals: figures(5),
+      labels: {}
+    });
+
+    let tickets = await agentTrackingSpendService.getBreakdown({
+      ...scope,
+      groupBy: 'ticket',
+      range: {}
+    });
+    let branches = await agentTrackingSpendService.getBreakdown({
+      ...scope,
+      groupBy: 'branch',
+      range: {}
+    });
+
+    expect(tickets.items.map(item => item.ticket)).toEqual([
+      { key: 'ENG-12', url: null },
+      { key: 'ENG-13', url: null }
+    ]);
+    expect(branches.items[0]!.ticket).toBeNull();
+    expect(tickets.items.map(item => [item.kind, item.key, item.share])).toEqual([
+      ['ticket', 'ENG-12', 1],
+      ['ticket', 'ENG-13', 1]
+    ]);
+    expect(branches.items.map(item => [item.kind, item.key])).toEqual([['branch', 'main']]);
+    expect(callsTo('entity:list')).toHaveLength(0);
   });
 });
 
@@ -129,7 +308,7 @@ describe('agentTrackingSpendService', () => {
     expect(call!.opts).toMatchObject({ retry: false, captureErrors: false });
 
     expect(timeline.items.map(item => item.date)).toEqual(['2026-11-16', '2026-11-17']);
-    expect(timeline.items[0]!.cost.totalMicros).toBe(0);
+    expect(timeline.items[0]!.cost!.totalMicros).toBe(0);
     expect(timeline.total.cost).toMatchObject({
       totalMicros: 1250000,
       isEstimate: true,
@@ -212,7 +391,7 @@ describe('agentTrackingSpendService', () => {
     });
 
     expect(callsTo('query:run')).toHaveLength(2);
-    expect(timeline.items.map(item => [item.date, item.counts, item.tokens.total])).toEqual([
+    expect(timeline.items.map(item => [item.date, item.counts, item.tokens!.total])).toEqual([
       ['2026-11-16', { sessions: 3, members: 2 }, 4],
       ['2026-11-17', { sessions: 0, members: 0 }, 4]
     ]);
@@ -402,7 +581,9 @@ describe('agentTrackingSpendService', () => {
           'time.day': '2026-11-16T00:00:00Z',
           ...figures(0),
           requests_without_cost: 4,
-          requests_without_list_price: 4
+          requests_without_list_price: 4,
+          tokens_without_cost: 4,
+          tokens_without_list_price: 4
         },
         {
           'time.day': '2026-11-17T00:00:00Z',
@@ -475,6 +656,68 @@ describe('agentTrackingSpendService', () => {
         requestsWithoutListPrice: 0
       });
     }
+  });
+
+  describe('turn-level usage, which has tokens but no requests', () => {
+    let turns = (cost: number | null, tokensWithoutCost: number) => ({
+      ...figures(cost, { requests: 0 }),
+      requests_without_cost: 0,
+      requests_without_list_price: 0,
+      tokens_without_cost: tokensWithoutCost,
+      tokens_without_list_price: tokensWithoutCost
+    });
+
+    it('is unpriced, not $0, when its model has no price', () => {
+      expect(spendFiguresOf(turns(0, 4)).cost).toMatchObject({
+        totalMicros: null,
+        estimatedMicros: null,
+        listPriceMicros: null,
+        requestsWithoutCost: 0
+      });
+    });
+
+    it('keeps the cost of priced turns', () => {
+      expect(spendFiguresOf(turns(0.5, 0)).cost).toMatchObject({
+        totalMicros: 500000,
+        listPriceMicros: 500000
+      });
+    });
+
+    it('is unpriced only when neither its requests nor its turns had a cost', () => {
+      let unpricedRequests = {
+        ...figures(0.5, { requests: 2 }),
+        tokens: { inputUncached: 8, cacheRead: 0, cacheWrite: 0, output: 0, reasoning: 0 },
+        requests_without_cost: 2,
+        requests_without_list_price: 2,
+        tokens_without_cost: 4,
+        tokens_without_list_price: 4
+      };
+      let unpricedTurns = { ...unpricedRequests, requests_without_cost: 0 };
+      let neither = { ...unpricedRequests, tokens_without_cost: 8 };
+
+      expect(spendFiguresOf(unpricedRequests).cost.totalMicros).toBe(500000);
+      expect(spendFiguresOf(unpricedTurns).cost.totalMicros).toBe(500000);
+      expect(spendFiguresOf(neither).cost.totalMicros).toBeNull();
+    });
+
+    it('shows an unpriced Cursor breakdown row as unpriced', async () => {
+      rpc.handlers['query:run'] = () => ({
+        rows: [{ model: 'cursor/composer-2.5', ...turns(0, 4) }],
+        totals: turns(0, 4),
+        labels: {}
+      });
+
+      let breakdown = await agentTrackingSpendService.getBreakdown({
+        ...scope,
+        groupBy: 'model',
+        range: {}
+      });
+
+      expect(breakdown.total.cost.totalMicros).toBeNull();
+      expect(breakdown.items.map(item => [item.key, item.cost.totalMicros])).toEqual([
+        ['cursor/composer-2.5', null]
+      ]);
+    });
   });
 
   it('says how many requests the list price leaves out', async () => {

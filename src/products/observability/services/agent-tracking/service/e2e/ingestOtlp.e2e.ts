@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { createToken, errorCode, ingest, instanceRecords, setSinkBusy } from './support';
+import {
+  createScope,
+  createToken,
+  errorCode,
+  ingest,
+  instanceRecords,
+  setSinkBusy
+} from './support';
 
 let nowNanos = () => String(BigInt(Date.now()) * 1_000_000n);
 
@@ -255,6 +262,47 @@ describe('otlp ingest', () => {
     expect(await instanceRecords(instance)).toHaveLength(0);
   });
 
+  it('stores no Codex api request that belongs to no thread', async () => {
+    let { instance, secret } = await createToken();
+
+    let apiRequest = (attributes: { key: string; value: unknown }[]) => ({
+      timeUnixNano: nowNanos(),
+      traceId: '0'.repeat(32),
+      spanId: '0'.repeat(16),
+      body: { stringValue: 'codex.api_request' },
+      attributes: [
+        attr('event.name', 'codex.api_request'),
+        attr('duration_ms', 120),
+        attr('attempt', 1),
+        ...attributes
+      ]
+    });
+
+    let response = await send('/v1/logs', secret, {
+      resourceLogs: [
+        {
+          resource: resource('codex-app-server'),
+          scopeLogs: [
+            {
+              scope: { name: 'codex_otel.log_only' },
+              logRecords: [apiRequest([]), apiRequest([attr('conversation.id', 'thread-1')])]
+            }
+          ]
+        }
+      ]
+    });
+
+    expect(response.status).toBe(200);
+
+    let stored = await instanceRecords(instance);
+
+    expect(stored).toHaveLength(1);
+    expect(stored[0]!.record).toMatchObject({
+      type: 'model.request',
+      ctx: { session_id: 'thread-1' }
+    });
+  });
+
   it('keeps records of different instances apart', async () => {
     let first = await createToken();
     let second = await createToken();
@@ -263,5 +311,158 @@ describe('otlp ingest', () => {
 
     expect(await instanceRecords(first.instance)).toHaveLength(1);
     expect(await instanceRecords(second.instance)).toHaveLength(0);
+  });
+});
+
+describe('otlp ingest with Desktop reporting settings', () => {
+  let sentinel = 'SENTINEL-e2e-tool-details-4c1e';
+  let sha = '06de4d4304e317c123c4bbb07394249ed0cde401';
+
+  let toolLogs = () => ({
+    resourceLogs: [
+      {
+        resource: resource('claude-code'),
+        scopeLogs: [
+          {
+            scope: { name: 'com.anthropic.claude_code.events' },
+            logRecords: [
+              {
+                timeUnixNano: nowNanos(),
+                body: { stringValue: 'claude_code.tool_result' },
+                attributes: [
+                  attr('event.name', 'tool_result'),
+                  attr('session.id', 'session-tools'),
+                  attr('tool_use_id', 'tool-commit'),
+                  attr('tool_name', 'Bash'),
+                  attr('success', 'true'),
+                  attr(
+                    'tool_parameters',
+                    JSON.stringify({
+                      full_command: `git commit -m "${sentinel}"`,
+                      git_commit_id: sha,
+                      git_branch: 'feature/MT-7-notes'
+                    })
+                  ),
+                  attr(
+                    'tool_input',
+                    JSON.stringify({ command: `git commit -m "${sentinel}"` })
+                  ),
+                  attr('vcs.ref.head.name', 'feature/MT-7-notes'),
+                  attr('vcs.ref.head.revision', sha),
+                  attr('vcs.ref.head.type', 'branch')
+                ]
+              },
+              {
+                timeUnixNano: nowNanos(),
+                body: { stringValue: 'claude_code.tool_result' },
+                attributes: [
+                  attr('event.name', 'tool_result'),
+                  attr('session.id', 'session-tools'),
+                  attr('tool_use_id', 'tool-mcp'),
+                  attr('tool_name', 'mcp__github__create_pr'),
+                  attr('success', 'true'),
+                  attr('tool_input', JSON.stringify({ title: sentinel }))
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  });
+
+  let desktopScope = (desktop: { toolDetails: boolean; sessionContext: boolean }) =>
+    createScope({ organization: { settings: { desktop } } });
+
+  let records = async (instance: { id: string }) =>
+    (await instanceRecords(instance)).map(entry => entry.record);
+
+  let toolInputs = (stored: Awaited<ReturnType<typeof records>>) =>
+    stored
+      .filter(record => record.type == 'tool.call')
+      .flatMap(record => record.content.filter(entry => entry.role == 'tool_input'));
+
+  it('stores no tool details from a device token while detailed tool reporting is off', async () => {
+    let scope = await desktopScope({ toolDetails: false, sessionContext: true });
+    let { instance, secret } = await createToken({}, scope);
+
+    expect((await send('/v1/logs', secret, toolLogs())).status).toBe(200);
+
+    let stored = await records(instance);
+    let commit = stored.find(record => record.type == 'vcs.commit');
+
+    expect(toolInputs(stored)).toEqual([]);
+    expect(JSON.stringify(stored)).not.toMatch(/SENTINEL|github__|create_pr/);
+    expect(stored.map(record => record.data.tool).filter(Boolean)).toContainEqual({
+      name: 'mcp_tool',
+      kind: 'mcp',
+      class: 'mcp'
+    });
+    expect(commit!.data).toEqual({ sha, branch: 'feature/MT-7-notes', source: 'otel' });
+    expect(commit!.source.fact_key).toBe(`commit:${commit!.ctx.session_key}:${sha}`);
+  });
+
+  it('keeps tool details while detailed tool reporting is on', async () => {
+    let scope = await desktopScope({ toolDetails: true, sessionContext: true });
+    let { instance, secret } = await createToken({}, scope);
+
+    await send('/v1/logs', secret, toolLogs());
+
+    expect(toolInputs(await records(instance)).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('stores no tool details from other tokens while detailed tool reporting is off', async () => {
+    let scope = await desktopScope({ toolDetails: false, sessionContext: true });
+    let { instance, secret } = await createToken({ deviceMode: 'ephemeral' }, scope);
+
+    expect((await send('/v1/logs', secret, toolLogs())).status).toBe(200);
+
+    let stored = await records(instance);
+    let commit = stored.find(record => record.type == 'vcs.commit');
+
+    expect(toolInputs(stored)).toEqual([]);
+    expect(JSON.stringify(stored)).not.toMatch(/SENTINEL|github__|create_pr/);
+    expect(stored.map(record => record.data.tool).filter(Boolean)).toContainEqual({
+      name: 'mcp_tool',
+      kind: 'mcp',
+      class: 'mcp'
+    });
+    expect(commit!.data).toEqual({ sha, branch: 'feature/MT-7-notes', source: 'otel' });
+  });
+
+  it('keeps tool details from other tokens while detailed tool reporting is on', async () => {
+    let scope = await desktopScope({ toolDetails: true, sessionContext: true });
+    let { instance, secret } = await createToken({ deviceMode: 'ephemeral' }, scope);
+
+    await send('/v1/logs', secret, toolLogs());
+
+    let stored = await records(instance);
+
+    expect(toolInputs(stored).length).toBeGreaterThanOrEqual(2);
+    expect(JSON.stringify(stored)).toContain('mcp__github__create_pr');
+  });
+
+  it('stores no session context or commits from other tokens while session context is off', async () => {
+    let scope = await desktopScope({ toolDetails: true, sessionContext: false });
+    let { instance, secret } = await createToken({ deviceMode: 'ephemeral' }, scope);
+
+    await send('/v1/logs', secret, toolLogs());
+
+    let stored = await records(instance);
+
+    expect(stored.map(record => record.type).sort()).toEqual(['tool.call', 'tool.call']);
+    expect(JSON.stringify(stored)).not.toContain(sha);
+  });
+
+  it('stores no session context or commits while session context is off', async () => {
+    let scope = await desktopScope({ toolDetails: true, sessionContext: false });
+    let { instance, secret } = await createToken({}, scope);
+
+    await send('/v1/logs', secret, toolLogs());
+
+    let stored = await records(instance);
+
+    expect(stored.map(record => record.type).sort()).toEqual(['tool.call', 'tool.call']);
+    expect(JSON.stringify(stored)).not.toContain(sha);
   });
 });

@@ -23,6 +23,7 @@
     "@metorial/rest": "^1.0.0",
     "@metorial/presenter": "^1.0.0",
     "@metorial/presenters": "^1.0.0",
+    "@metorial/model-catalog": "workspace:*",
     "@metorial/module-access": "^1.0.0",
     "@metorial/module-agent-tracking-access": "^1.0.0",
     "@metorial/module-agent-tracking-query": "^1.0.0",

@@ -1,12 +1,20 @@
 import type { ContentInput } from '@mtsrc/agent-tracking-content';
-import type { OtlpLogRecord, OtlpSpan } from '@mtsrc/agent-tracking-otlp';
+import {
+  claudeCodeAgentQuery,
+  claudeCodePlaceholderNames,
+  isClaudeCodeBuiltInAgent,
+  isClaudeCodeMainQuerySource
+} from '@mtsrc/agent-tracking-spec';
+import type { OtlpAttributes, OtlpLogRecord, OtlpSpan } from '@mtsrc/agent-tracking-otlp';
 import type { RecordDraft } from '@mtsrc/agent-tracking-records-model';
 import { claudeCodeBilling, claudeCodeProvider } from '../billing';
+import { otlpHeadBranch } from '../context';
 import { readFields, withCoerced, type FieldReader } from '../fields';
 import { measurementDraft } from '../measure';
-import { classifyTool } from '../tools';
+import { classifyTool, isMcpTool, redactedMcpTool } from '../tools';
 import { dateFromNanos, dateFromValue, firstDate } from '../time';
-import type { Mapped, OtlpDialect, OtlpGroupContext } from '../types';
+import { isContent, rewrite, type AttributeValue } from './policy';
+import type { Mapped, OtlpDialect, OtlpGroupContext, OtlpItemView } from '../types';
 import {
   buildUsage,
   errorFromStatus,
@@ -18,6 +26,7 @@ import {
   type Decision,
   usdCost
 } from '../values';
+import { commitDraft, gitParameter, gitParameterKeys, parseToolParameters } from '../vcs';
 import {
   clientVersionOf,
   otlpSource,
@@ -101,15 +110,34 @@ let clientOf = (context: OtlpGroupContext, fields: FieldReader): RecordDraft['cl
   };
 };
 
-let purposeOf = (querySource: string | undefined) => {
+let purposeOf = (fields: FieldReader) => {
+  let querySource = fields.str('query_source', 'query_source_safe');
   if (!querySource) return {};
 
-  if (querySource == 'repl_main_thread') return { purpose: 'main' };
+  if (isClaudeCodeMainQuerySource(querySource)) return { purpose: 'main' };
   if (querySource == 'compact') return { purpose: 'compaction' };
+  if (querySource == 'auxiliary') return { purpose: 'auxiliary' };
 
-  let name = nativeLabel(querySource);
+  let agentName = nativeLabel(fields.str('agent.name'));
 
-  return name ? { purpose: 'subagent', agent_name: name } : {};
+  let agentQuery = claudeCodeAgentQuery(querySource);
+
+  if (agentQuery) {
+    return {
+      purpose: 'subagent',
+      ...ok(agentName ?? nativeLabel(agentQuery.type), 'agent_name')
+    };
+  }
+
+  if (querySource == 'subagent') {
+    return { purpose: 'subagent', ...ok(agentName, 'agent_name') };
+  }
+
+  if (agentName || fields.str('agent_id')) {
+    return { purpose: 'subagent', ...ok(agentName ?? nativeLabel(querySource), 'agent_name') };
+  }
+
+  return { purpose: 'auxiliary' };
 };
 
 // What Claude Code sends in place of a prompt or response while content logging is off (seen
@@ -143,14 +171,16 @@ let contentFrom = (
   ];
 };
 
+// gen_ai.usage.input_tokens on llm_request spans counts cache reads and writes too.
 let usageFrom = (fields: FieldReader) =>
   buildUsage({
     inputUncached: fields.count('input_tokens'),
-    cacheRead: fields.count('cache_read_tokens'),
-    cacheWrite: fields.count('cache_creation_tokens'),
+    inputIncludingCacheReadsAndWrites: fields.count('gen_ai.usage.input_tokens'),
+    cacheRead: fields.count('cache_read_tokens', 'gen_ai.usage.cache_read.input_tokens'),
+    cacheWrite: fields.count('cache_creation_tokens', 'gen_ai.usage.cache_write.input_tokens'),
     cacheWrite5m: fields.count('cache_creation_5m_tokens'),
     cacheWrite1h: fields.count('cache_creation_1h_tokens'),
-    output: fields.count('output_tokens')
+    output: fields.count('output_tokens', 'gen_ai.usage.output_tokens')
   });
 
 let decisionFrom = (
@@ -186,8 +216,8 @@ type LogState = {
   fields: FieldReader;
 };
 
-let logName = (log: OtlpLogRecord, fields: FieldReader): string => {
-  let fromAttribute = fields.str('event.name');
+let logName = (log: OtlpLogRecord): string => {
+  let fromAttribute = readFields(log.attributes, 'log.').str('event.name');
   if (fromAttribute) return stripPrefix(fromAttribute, eventPrefix);
 
   if (typeof log.body == 'string' && log.body.startsWith(eventPrefix)) {
@@ -243,11 +273,10 @@ let withData = (draft: RecordDraft, data: Record<string, unknown>): RecordDraft 
   data: { ...draft.data, ...data }
 });
 
-let requestFact = (fields: FieldReader) => {
-  let id = fields.str('request_id');
+export let claudeCodeRequestFact = (requestId: string | undefined) =>
+  requestId ? `req:{session_key}:${requestId}` : null;
 
-  return id ? `req:{session_key}:${id}` : null;
-};
+let requestFact = (fields: FieldReader) => claudeCodeRequestFact(fields.str('request_id'));
 
 let toolFact = (fields: FieldReader) => {
   let id = fields.str('tool_use_id');
@@ -255,17 +284,46 @@ let toolFact = (fields: FieldReader) => {
   return id ? `tool:{session_key}:${id}` : null;
 };
 
+let placeholderSkillNames = new Set<string>(claudeCodePlaceholderNames.skills);
+
 let toolOf = (fields: FieldReader) => {
   let name = fields.str('tool_name', 'tool_name_safe');
   if (!name) return undefined;
 
-  let server = fields.str('mcp_server_name', 'anthropic.mcp.server.name');
-
-  return classifyTool(name, server ? { mcpServer: server } : {});
+  return classifyTool(name, {
+    server: fields.raw('mcp_server_name', 'anthropic.mcp.server.name'),
+    source: fields.raw('tool_source'),
+    client: 'claude-code'
+  });
 };
 
 let ok = <T>(value: T | undefined, key: string) =>
   value === undefined ? {} : { [key]: value };
+
+// Claude Code adds git_commit_id and git_branch to a shell tool's parameters when the command
+// made a commit; the ingest lifts them out when it drops the parameters.
+let commitOf = (
+  state: LogState,
+  tool: ReturnType<typeof toolOf>,
+  success: boolean | undefined
+) => {
+  if (success !== true || tool?.class != 'shell') return null;
+
+  let { fields } = state;
+  let parameters = parseToolParameters(fields.raw('tool_parameters'));
+
+  return commitDraft(logDraft(state, 'vcs.commit'), {
+    source: 'otel',
+    sha:
+      fields.str('git_commit_id') ??
+      gitParameter(parameters?.git_commit_id) ??
+      fields.str('vcs.ref.head.revision'),
+    branch:
+      fields.str('git_branch') ??
+      gitParameter(parameters?.git_branch) ??
+      otlpHeadBranch(fields)
+  });
+};
 
 let mapApiRequest = (state: LogState): RecordDraft => {
   let { context, fields } = state;
@@ -278,6 +336,7 @@ let mapApiRequest = (state: LogState): RecordDraft => {
   );
 
   let duration = fields.count('duration_ms');
+  let ttft = fields.count('ttft_ms');
   let speed = normalizeSpeed(fields.str('speed'));
   let effort = normalizeEffort(fields.str('effort'));
   let model = nativeLabel(fields.str('model'));
@@ -297,9 +356,10 @@ let mapApiRequest = (state: LogState): RecordDraft => {
       ...(usage.usage ? { usage: usage.usage } : {}),
       ...(cost ? { cost } : {}),
       ...ok(duration, 'duration_ms'),
+      ...ok(ttft, 'ttft_ms'),
       ...ok(speed, 'speed'),
       ...ok(effort, 'effort'),
-      ...purposeOf(fields.str('query_source'))
+      ...purposeOf(fields)
     }
   );
 };
@@ -411,6 +471,7 @@ let mapEvent = (state: LogState): RecordDraft[] => {
       let decisionSource = nativeLabel(fields.str('decision_source'));
 
       let hints = { tool: tool?.name };
+      let commit = commitOf(state, tool, success);
 
       return [
         withData(
@@ -435,7 +496,8 @@ let mapEvent = (state: LogState): RecordDraft[] => {
             ...ok(outputBytes, 'output_bytes'),
             ...ok(decisionSource, 'decision_source')
           }
-        )
+        ),
+        ...(commit ? [commit] : [])
       ];
     }
 
@@ -593,7 +655,8 @@ let mapEvent = (state: LogState): RecordDraft[] => {
     }
 
     case 'skill_activated': {
-      let skill = nativeLabel(fields.str('skill.name'));
+      let name = nativeLabel(fields.str('skill.name'));
+      let skill = name && !placeholderSkillNames.has(name) ? name : undefined;
       let trigger = nativeLabel(fields.str('invocation_trigger'));
       let source = nativeLabel(fields.str('skill.source'));
 
@@ -652,7 +715,7 @@ let mapEvent = (state: LogState): RecordDraft[] => {
 
 let mapLog = (context: OtlpGroupContext, log: OtlpLogRecord): Mapped[] => {
   let fields = readFields(log.attributes, 'log.');
-  let name = logName(log, fields);
+  let name = logName(log);
 
   let state: LogState = { context, log, name, fields };
   let source = otlpSource(adapter, claudeCodeOtlpId, 'logs');
@@ -825,7 +888,9 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
     case 'llm_request': {
       let account = accountOf(fields, context.resourceFields);
       let usage = usageFrom(fields);
-      let model = nativeLabel(fields.str('model'));
+      let model = nativeLabel(
+        fields.str('model', 'gen_ai.response.model', 'gen_ai.request.model')
+      );
       let ttft = fields.count('ttft_ms');
       let status = fields.int('status_code');
       let success = fields.bool('success');
@@ -862,7 +927,8 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
             ...ok(stop, 'stop_reason'),
             ...ok(attempt, 'attempt'),
             ...ok(speed, 'speed'),
-            ...ok(effort, 'effort')
+            ...ok(effort, 'effort'),
+            ...purposeOf(fields)
           }
         )
       );
@@ -913,6 +979,114 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
   }
 };
 
+let claudeCodeContent = ['tool_parameters', 'tool_input'];
+
+let claudeCodeDetails = new Set([
+  'classifier_category',
+  'full_command',
+  'bash_argv0',
+  'file_path',
+  'skill_name',
+  'subagent_type',
+  'hook_matcher',
+  'anthropic.mcp.server.name',
+  'mcp_server_name',
+  'mcp_tool_name',
+  'plugin.name',
+  'marketplace.name'
+]);
+
+let claudeCodeToolEvents = new Set(['tool_result', 'tool', 'tool.execution']);
+
+let claudeCodeOutputKeys = new Set(['content', 'output']);
+
+export let claudeCodeCustomName = 'custom';
+let mcpCommand = 'mcp';
+
+let liftedGitParameters = (value: AttributeValue | undefined): OtlpAttributes => {
+  let parameters = value === undefined ? null : parseToolParameters(value);
+  if (!parameters) return {};
+
+  let lifted: OtlpAttributes = {};
+
+  for (let key of gitParameterKeys) {
+    let git = gitParameter(parameters[key]);
+    if (git) lifted[key] = git;
+  }
+
+  return lifted;
+};
+
+let claudeCodeMcpSignals = (attributes: OtlpAttributes) => ({
+  name: attributes['tool_name'],
+  server: attributes['mcp_server_name'] ?? attributes['anthropic.mcp.server.name'],
+  source: attributes['tool_source']
+});
+
+// What Claude Code sends in place of these names without OTEL_LOG_TOOL_DETAILS. A hook name is
+// its event and matcher, and the matcher is the gated part.
+export let claudeCodePlaceholder = (
+  attributes: OtlpAttributes,
+  key: string,
+  value: AttributeValue
+): AttributeValue => {
+  switch (key) {
+    case 'tool_name':
+      return isMcpTool(claudeCodeMcpSignals(attributes)) ? redactedMcpTool : value;
+
+    case 'command_name': {
+      let source = attributes['command_source'];
+      return source == 'builtin'
+        ? value
+        : source == mcpCommand
+          ? mcpCommand
+          : claudeCodeCustomName;
+    }
+
+    case 'agent_type':
+      return isClaudeCodeBuiltInAgent({ isBuiltIn: attributes['is_built_in'] })
+        ? value
+        : claudeCodeCustomName;
+
+    case 'agent.name':
+      return isClaudeCodeBuiltInAgent({
+        querySource: attributes['query_source'] ?? attributes['query_source_safe']
+      })
+        ? value
+        : claudeCodeCustomName;
+
+    case 'hook_name':
+      return typeof value == 'string' ? value.split(':')[0]! : value;
+
+    default:
+      return value;
+  }
+};
+
+let claudeCodeWithoutToolDetails = (item: OtlpItemView): OtlpItemView => {
+  let event = stripPrefix(item.name, eventPrefix);
+  let mcpTool = isMcpTool(claudeCodeMcpSignals(item.attributes));
+
+  let gated = (key: string) =>
+    claudeCodeContent.some(base => isContent(key, base)) ||
+    claudeCodeDetails.has(key) ||
+    (claudeCodeToolEvents.has(event) && isContent(key, 'error')) ||
+    (event == 'mcp_server_connection' && (isContent(key, 'error') || key == 'server_name')) ||
+    (event == 'skill_activated' && key == 'skill.name') ||
+    (event == 'tool.output' && claudeCodeOutputKeys.has(key)) ||
+    (mcpTool && key == 'gen_ai.tool.name');
+
+  return {
+    ...item,
+    attributes: rewrite(
+      item.attributes,
+      (key, value) =>
+        gated(key) ? undefined : claudeCodePlaceholder(item.attributes, key, value),
+      liftedGitParameters(item.attributes['tool_parameters'])
+    )
+  };
+};
+
 export let claudeCodeOtlp: OtlpDialect = {
   id: claudeCodeOtlpId,
   adapter,
@@ -927,5 +1101,8 @@ export let claudeCodeOtlp: OtlpDialect = {
 
   mapLog,
   mapMetric,
-  mapSpan
+  mapSpan,
+
+  logName,
+  withoutToolDetails: claudeCodeWithoutToolDetails
 };

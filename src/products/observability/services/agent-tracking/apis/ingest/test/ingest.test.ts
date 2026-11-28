@@ -77,7 +77,17 @@ describe('ingestFetch', () => {
     expect(body.object).toBe('agent_tracking#bulk_dialects');
     expect(body.items).toEqual([
       { client: 'claude-code', channel: 'hook', dialect: 'claude-code.hooks.v1' },
-      { client: 'codex', channel: 'hook', dialect: 'codex.hooks.v1' }
+      { client: 'codex', channel: 'hook', dialect: 'codex.hooks.v1' },
+      ...['claude-code', 'codex', 'cursor', 'antigravity', 'opencode'].map(client => ({
+        client,
+        channel: 'envelope',
+        dialect: 'metorial.desktop.context.v1'
+      })),
+      { client: 'claude-code', channel: 'transcript', dialect: 'claude-code.transcript.v1' },
+      { client: 'codex', channel: 'transcript', dialect: 'codex.transcript.v1' },
+      { client: 'cursor', channel: 'hook', dialect: 'cursor.hooks.v1' },
+      { client: 'antigravity', channel: 'transcript', dialect: 'antigravity.transcript.v1' },
+      { client: 'opencode', channel: 'sse', dialect: 'opencode.plugin.v1' }
     ]);
   });
 });

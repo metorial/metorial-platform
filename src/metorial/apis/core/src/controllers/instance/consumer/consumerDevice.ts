@@ -1,13 +1,33 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { consumerDeviceService, consumerDeviceStatuses } from '@metorial/module-consumer-core';
+import type { Organization, Project } from '@metorial/db';
+import {
+  type ConsumerDeviceRecord,
+  consumerDeviceService,
+  consumerDeviceSettingsService,
+  consumerDeviceStatuses
+} from '@metorial/module-consumer-core';
 import { consumerDevicePresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
+import { deviceFlags } from '../../../lib/aiToolDetection';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { requireParam } from '../../../lib/requireParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+
+let presentDevice = async (
+  ctx: { organization: Organization; project: Project },
+  consumerDevice: ConsumerDeviceRecord
+) => {
+  let [visible] = await consumerDeviceSettingsService.withVisibleDetections({
+    organization: ctx.organization,
+    project: ctx.project,
+    consumerDevices: [consumerDevice]
+  });
+
+  return consumerDevicePresenter.present({ consumerDevice: visible! });
+};
 
 let consumerDeviceGroup = instanceGroup.use(async ctx => {
   let consumerDevice = await consumerDeviceService.getDeviceById({
@@ -32,7 +52,7 @@ export let consumerDeviceManagementController = Controller.create(
         description: 'Returns a paginated list of consumer devices.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
-      .use(hasFlags(['paid-portals', 'portals-access', 'devices-enabled']))
+      .use(hasFlags(deviceFlags))
       .query(
         'default',
         Paginator.validate(
@@ -70,8 +90,13 @@ export let consumerDeviceManagementController = Controller.create(
           statuses: normalizeArrayParam(ctx.query.status)
         });
         let list = await paginator.run(ctx.query);
+        let items = await consumerDeviceSettingsService.withVisibleDetections({
+          organization: ctx.organization,
+          project: ctx.project,
+          consumerDevices: list.items
+        });
 
-        return Paginator.present(list, consumerDevice =>
+        return Paginator.present({ ...list, items }, consumerDevice =>
           consumerDevicePresenter.present({ consumerDevice })
         );
       }),
@@ -82,11 +107,9 @@ export let consumerDeviceManagementController = Controller.create(
         description: 'Retrieves a consumer device.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
-      .use(hasFlags(['paid-portals', 'portals-access', 'devices-enabled']))
+      .use(hasFlags(deviceFlags))
       .output(consumerDevicePresenter)
-      .do(async ctx =>
-        consumerDevicePresenter.present({ consumerDevice: ctx.consumerDevice })
-      ),
+      .do(async ctx => await presentDevice(ctx, ctx.consumerDevice)),
 
     revoke: consumerDeviceGroup
       .post(
@@ -98,7 +121,7 @@ export let consumerDeviceManagementController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:write'] }))
-      .use(hasFlags(['paid-portals', 'portals-access', 'devices-enabled']))
+      .use(hasFlags(deviceFlags))
       .output(consumerDevicePresenter)
       .do(async ctx => {
         let consumerDevice = await consumerDeviceService.revokeDevice({
@@ -106,7 +129,7 @@ export let consumerDeviceManagementController = Controller.create(
           auditScope: ctx.auditScope
         });
 
-        return consumerDevicePresenter.present({ consumerDevice });
+        return await presentDevice(ctx, consumerDevice);
       })
   }
 );

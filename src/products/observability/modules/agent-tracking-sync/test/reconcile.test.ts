@@ -12,13 +12,20 @@ vi.mock('@metorial/db', () => ({
     project: { findMany: vi.fn() },
     instance: { findMany: vi.fn(), findFirst: vi.fn() },
     consumer: { findMany: vi.fn() },
-    consumerDevice: { findMany: vi.fn() }
+    consumerDevice: { findMany: vi.fn() },
+    mcpClientType: { findMany: vi.fn() },
+    consumerDeviceDetection: { findMany: vi.fn() }
   }
 }));
 
 vi.mock('../src/lib/client', async () => (await import('./_mocks')).clientModule);
 
 vi.mock('../src/lib/flag', async () => (await import('./_mocks')).flagModule);
+
+vi.mock(
+  '@metorial/module-consumer-core',
+  async () => (await import('./_mocks')).consumerCoreModule
+);
 
 vi.mock('../src/queues/syncScope', () => ({
   syncScopeQueue: { add: vi.fn(), addMany: vi.fn() }
@@ -372,5 +379,56 @@ describe('agent-tracking/reconcile', () => {
       { organizationId: 'org_1', kind: 'device', after: 'gen_9' },
       { delay: 0 }
     );
+  });
+
+  it('archives agents that only a detection no longer backs', async () => {
+    vi.mocked(db.organization.findUnique).mockResolvedValue(organization as any);
+    mocks.agentTracking.entity.list.mockResolvedValue({
+      items: [
+        { id: 'gen_a', source: 'metorial.client', ref: 'cursor', lastSeenAt: null },
+        { id: 'gen_b', source: 'metorial.client', ref: 'ollama', lastSeenAt: null },
+        { id: 'gen_c', source: 'metorial.client', ref: 'lm-studio', lastSeenAt: null },
+        { id: 'gen_d', source: 'metorial.client', ref: 'goose', lastSeenAt: new Date() }
+      ],
+      pagination: { has_more_after: false }
+    });
+    vi.mocked(db.mcpClientType.findMany).mockResolvedValue([{ key: 'cursor' }] as any);
+    vi.mocked(db.consumerDeviceDetection.findMany).mockResolvedValue([
+      { toolKey: 'ollama', instance: { oid: 3n, project: { oid: 2n, id: 'proj_1' } } }
+    ] as any);
+
+    await (reconcileEntitiesQueueProcessor as any).handler({
+      organizationId: 'org_1',
+      kind: 'agent'
+    });
+
+    expect(mocks.agentTracking.entity.archive).toHaveBeenCalledTimes(1);
+    expect(mocks.agentTracking.entity.archive).toHaveBeenCalledWith({
+      organizationId: 'org_1',
+      entityId: 'gen_c'
+    });
+  });
+
+  it('archives detection-only agents while detection is not available', async () => {
+    mocks.aiToolDetection.value = false;
+    vi.mocked(db.organization.findUnique).mockResolvedValue(organization as any);
+    mocks.agentTracking.entity.list.mockResolvedValue({
+      items: [{ id: 'gen_b', source: 'metorial.client', ref: 'ollama', lastSeenAt: null }],
+      pagination: { has_more_after: false }
+    });
+    vi.mocked(db.mcpClientType.findMany).mockResolvedValue([]);
+    vi.mocked(db.consumerDeviceDetection.findMany).mockResolvedValue([
+      { toolKey: 'ollama', instance: { oid: 3n, project: { oid: 2n, id: 'proj_1' } } }
+    ] as any);
+
+    await (reconcileEntitiesQueueProcessor as any).handler({
+      organizationId: 'org_1',
+      kind: 'agent'
+    });
+
+    expect(mocks.agentTracking.entity.archive).toHaveBeenCalledWith({
+      organizationId: 'org_1',
+      entityId: 'gen_b'
+    });
   });
 });

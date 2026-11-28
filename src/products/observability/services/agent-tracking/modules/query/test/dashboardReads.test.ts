@@ -19,6 +19,7 @@ describe('last activity per member', () => {
 
     expect(JSON.stringify(pipeline)).toContain('"$max"');
     expect(JSON.stringify(pipeline)).toContain('lastActivityAt');
+    expect(pipeline[0]).toMatchObject({ $match: { empty: { $ne: true } } });
     expect(datasets.sessions.metrics.last_activity).toMatchObject({ fn: 'max', type: 'date' });
 
     let earlier = new Date('2026-11-14T10:47:00.000Z');
@@ -275,5 +276,116 @@ describe('dashboard spend queries', () => {
 
       expect(bound).toMatchObject({ limit: 10, other: true, totals: true });
     }
+  });
+});
+
+describe('tools tab queries', () => {
+  let mcp = { field: 'tool.kind', op: 'eq', value: 'mcp' };
+
+  it('reads skill activations from extension events, named ones apart', () => {
+    let bound = bind({
+      dataset: 'skill_activations',
+      dimensions: [{ field: 'skill.name', missing: 'exclude' }],
+      measures: ['skill_activations.named', 'users.active', 'last_used'],
+      having: { field: 'skill_activations.named', op: 'gt', value: 0 },
+      orderBy: [{ by: 'skill_activations.named', direction: 'desc' }],
+      limit: 500,
+      labels: false
+    });
+    let pipeline = JSON.stringify(aggregatePipeline(bound));
+
+    expect(datasets.skill_activations).toMatchObject({
+      collection: 'events',
+      baseMatch: {
+        type: 'extension.event',
+        'data.kind': 'skill',
+        'data.action': 'activated',
+        'source.role': 'primary'
+      },
+      maxRangeDays: 90
+    });
+    expect(pipeline).toContain('"extension.event"');
+    expect(pipeline).toContain('"$data.name"');
+    expect(pipeline).toContain('"$max"');
+
+    let named = JSON.stringify(bound.measures.find(m => m.name == 'skill_activations.named'));
+    expect(named).toContain('"custom_skill"');
+    expect(named).toContain('"claude-code"');
+  });
+
+  it('counts all and named activations in the summary', () => {
+    let bound = bind({
+      dataset: 'skill_activations',
+      measures: ['skill_activations', 'skill_activations.named', 'users.active'],
+      labels: false
+    });
+
+    expect(bound.measures.map(measure => measure.name)).toEqual([
+      'skill_activations',
+      'skill_activations.named',
+      'users.active'
+    ]);
+  });
+
+  it('groups MCP calls by server and tool with failures, people and last use', () => {
+    let bound = bind({
+      dataset: 'tool_calls',
+      where: mcp,
+      dimensions: [
+        { field: 'mcp.server', missing: 'exclude' },
+        { field: 'mcp.tool', missing: 'exclude' }
+      ],
+      measures: [
+        'tool_calls',
+        'tool_calls.failed',
+        'tool_calls.error_rate',
+        'users.active',
+        'last_used'
+      ],
+      orderBy: [{ by: 'tool_calls', direction: 'desc' }],
+      limit: 2000,
+      labels: false
+    });
+    let pipeline = JSON.stringify(aggregatePipeline(bound));
+
+    expect(pipeline).toContain('"$data.tool.mcp.server"');
+    expect(pipeline).toContain('"$data.tool.mcp.tool"');
+    expect(datasets.tool_calls.metrics.last_used).toMatchObject({
+      fn: 'max',
+      field: 'occurredAt',
+      type: 'date'
+    });
+  });
+
+  it('counts MCP calls with the redacted calls older Claude Code records keep', () => {
+    let bound = bind({
+      dataset: 'tool_calls',
+      measures: [
+        'mcp_calls',
+        'mcp_calls.failed',
+        'mcp_calls.error_rate',
+        'mcp_calls.named',
+        'mcp_calls.users',
+        'mcp_calls.last_used'
+      ],
+      labels: false
+    });
+    let calls = JSON.stringify(bound.measures.find(m => m.name == 'mcp_calls'));
+
+    expect(bound.measures.map(measure => measure.name)).toEqual([
+      'mcp_calls',
+      'mcp_calls.failed',
+      'mcp_calls.error_rate',
+      'mcp_calls.named',
+      'mcp_calls.users',
+      'mcp_calls.last_used'
+    ]);
+    expect(calls).toContain('"mcp_tool"');
+    expect(calls).toContain('"mcp_other"');
+    expect(calls).not.toContain('"custom"');
+
+    let named = JSON.stringify(bound.measures.find(m => m.name == 'mcp_calls.named'));
+
+    expect(named).toContain('"op":"notIn","value":["custom"]');
   });
 });

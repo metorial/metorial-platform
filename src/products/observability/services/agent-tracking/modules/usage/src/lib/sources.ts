@@ -46,6 +46,7 @@ let usagePrecedence: Record<string, SourceKind[]> = {
   'copilot-chat': spansFirst,
   'github-copilot': spansFirst,
   opencode: ['plugin', 'otel.spans', 'otel.logs', 'hook'],
+  antigravity: ['transcript', 'otel.logs', 'otel.spans', 'hook'],
   kiro: ['vendor', 'hook']
 };
 

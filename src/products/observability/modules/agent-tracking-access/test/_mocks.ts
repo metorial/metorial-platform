@@ -1,5 +1,9 @@
 import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import * as clientFamilies from '@metorial/module-agent-tracking-sync/src/definitions/clientFamilies';
+import {
+  acceptedHistoryImportDays,
+  defaultHistoryImportDays
+} from '@metorial/module-agent-tracking-sync/src/lib/settings';
 import { expect, vi } from 'vitest';
 
 export let mocks = {
@@ -9,6 +13,16 @@ export let mocks = {
   },
   enabled: { value: true },
   flagged: { value: true },
+  desktop: {
+    value: {
+      toolDetails: false,
+      sessionContext: true,
+      sessionTitles: false,
+      historyImport: false,
+      historyImportDays: 90
+    }
+  },
+  recordDays: { value: null as number | null },
   flagChecks: [] as unknown[],
   settings: {
     ingestPublicUrl: 'https://ingest.example.com' as string | undefined
@@ -32,9 +46,15 @@ let isEnabledForOrganization = async (d: unknown) => {
 
 export let syncModule = {
   ...clientFamilies,
+  defaultHistoryImportDays,
+  acceptedHistoryImportDays,
   agentTrackingSyncService: {
     backfillRoster: mocks.backfillRoster,
     syncEntities: mocks.syncEntities
+  },
+  agentTrackingSettingsService: {
+    getOrganizationValues: async () => ({ desktop: { ...mocks.desktop.value } }),
+    getProjectValues: async () => ({ retention: { recordDays: mocks.recordDays.value } })
   },
   isAgentTrackingEnabled: () => mocks.enabled.value,
   assertAgentTrackingEnabled: async (d: {
@@ -88,6 +108,14 @@ export let resetMocks = () => {
   vi.clearAllMocks();
   mocks.enabled.value = true;
   mocks.flagged.value = true;
+  mocks.desktop.value = {
+    toolDetails: false,
+    sessionContext: true,
+    sessionTitles: false,
+    historyImport: false,
+    historyImportDays: 90
+  };
+  mocks.recordDays.value = null;
   mocks.flagChecks.length = 0;
   mocks.settings.ingestPublicUrl = 'https://ingest.example.com';
   mocks.afterCommit = [];

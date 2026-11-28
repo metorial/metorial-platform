@@ -1,4 +1,9 @@
 import { db } from '@metorial/db';
+import { findDetectionTool } from '@metorial/model-catalog/detection';
+import {
+  consumerDeviceSettingsService,
+  visibleDetectionWhere
+} from '@metorial/module-consumer-core';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { getAgentTracking, ignoreNotFound } from '../lib/client';
 import { isAgentTrackingEnabledForOrganization } from '../lib/flag';
@@ -56,12 +61,13 @@ let syncEntity = async (data: EntitySyncTarget) => {
   let consumerDevice = await db.consumerDevice.findUnique({
     where: { id: data.id },
     include: {
-      instance: { include: { organization: true } },
+      instance: { include: { organization: true, project: true } },
       consumerProfile: { include: { consumer: { include: consumerInclude } } },
       clients: {
         where: { reported: true, detected: true },
         include: { mcpClientType: true }
-      }
+      },
+      detections: { where: visibleDetectionWhere({ excludeStale: true }) }
     }
   });
   if (!consumerDevice || consumerDevice.instance.organization.status != 'active') return;
@@ -86,6 +92,16 @@ let syncEntity = async (data: EntitySyncTarget) => {
     return;
   }
 
+  let detections =
+    consumerDevice.detections.length &&
+    (await consumerDeviceSettingsService.isAiToolDetectionActive({
+      organization,
+      project: consumerDevice.instance.project,
+      instance: consumerDevice.instance
+    }))
+      ? consumerDevice.detections
+      : [];
+
   await withOrganizationScope({ organization }, async () => {
     let user = await agentTracking.entity.upsert(
       consumerEntityInput({ organization, consumer: consumerDevice.consumerProfile.consumer })
@@ -103,11 +119,24 @@ let syncEntity = async (data: EntitySyncTarget) => {
       reach: 'from_now'
     });
 
-    await Promise.all(
-      consumerDevice.clients.map(client =>
-        agentTracking.entity.upsert(clientAgentEntityInput({ organization, client }))
-      )
+    let agents = new Map(
+      consumerDevice.clients.map(client => {
+        let input = clientAgentEntityInput({ organization, client });
+        return [input.ref, input];
+      })
     );
+    for (let detection of detections) {
+      let tool = findDetectionTool(detection.toolKey);
+      if (!tool) continue;
+
+      let input = clientAgentEntityInput({
+        organization,
+        client: { name: tool.name, mcpClientType: { key: tool.key } }
+      });
+      if (!agents.has(input.ref)) agents.set(input.ref, input);
+    }
+
+    await Promise.all([...agents.values()].map(input => agentTracking.entity.upsert(input)));
   });
 };
 

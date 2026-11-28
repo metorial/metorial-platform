@@ -1,3 +1,4 @@
+import { fullIngestPolicy } from '@mtsrc/agent-tracking-spec';
 import { describe, expect, it } from 'vitest';
 import type { SessionContextData } from '@mtsrc/agent-tracking-spec';
 import { buildMapped } from './build';
@@ -11,7 +12,7 @@ import { genAiOtlp } from '../src/otlp/genai';
 import { mapOtlpGroup } from '../src/registry';
 import type { Mapped } from '../src/types';
 
-let hookContext = { identityHint: 'h', occurredAt: hookTime };
+let hookContext = { policy: fullIngestPolicy, identityHint: 'h', occurredAt: hookTime };
 
 let contextOf = (mapped: Mapped[]) =>
   mapped.filter(entry => entry.draft.type == 'session.context');
@@ -109,6 +110,29 @@ describe('hook context', () => {
     ]);
   });
 
+  it.each(['feature/\u202eENG-42', 'feature/ENG-42\u200b', 'feature/\u0085ENG-42'])(
+    'drops a hook branch with hidden or bidi characters (%j)',
+    branch => {
+      let mapped = codexHooks.map(hookContext, {
+        hook_event_name: 'PreToolUse',
+        session_id: 's-1',
+        metorial: { ...probeEnvelope, git: { ...probeEnvelope.git, branch } }
+      });
+
+      expect(dataOf(contextOf(mapped)[0])).not.toHaveProperty('branch');
+    }
+  );
+
+  it('still strips line breaks around a hook branch', () => {
+    let mapped = codexHooks.map(hookContext, {
+      hook_event_name: 'PreToolUse',
+      session_id: 's-1',
+      metorial: { ...probeEnvelope, git: { ...probeEnvelope.git, branch: 'main\n' } }
+    });
+
+    expect(dataOf(contextOf(mapped)[0])?.branch).toBe('main');
+  });
+
   it('carries forked and generation ids on compatible hooks', () => {
     let [start] = claudeCodeHooks.map(hookContext, {
       hook_event_name: 'SessionStart',
@@ -165,7 +189,8 @@ describe('otlp context', () => {
       groupOf(
         [logRecord({ 'event.name': 'user_prompt', 'session.id': 's-1', prompt_length: 3 })],
         claudeResource
-      )
+      ),
+      fullIngestPolicy
     );
 
     let [context] = contextOf(result.mapped);
@@ -185,13 +210,27 @@ describe('otlp context', () => {
     });
   });
 
+  it('drops an OTel branch with bidi characters', () => {
+    let result = mapOtlpGroup(
+      'logs',
+      groupOf([logRecord({ 'event.name': 'user_prompt', 'session.id': 's-1' })], {
+        ...claudeResource,
+        'vcs.ref.head.name': 'ENG-7-\u2066fix'
+      }),
+      fullIngestPolicy
+    );
+
+    expect(dataOf(contextOf(result.mapped)[0])?.branch).toBeUndefined();
+  });
+
   it('ignores tag refs as branches', () => {
     let result = mapOtlpGroup(
       'logs',
       groupOf([logRecord({ 'event.name': 'user_prompt', 'session.id': 's-1' })], {
         ...claudeResource,
         'vcs.ref.head.type': 'tag'
-      })
+      }),
+      fullIngestPolicy
     );
 
     expect(dataOf(contextOf(result.mapped)[0])?.branch).toBeUndefined();
@@ -212,7 +251,8 @@ describe('otlp context', () => {
           })
         ],
         { 'service.name': 'claude-code' }
-      )
+      ),
+      fullIngestPolicy
     );
 
     expect(result.mapped[0]?.draft.actor).toEqual({
@@ -235,7 +275,8 @@ describe('otlp context', () => {
           })
         ],
         { 'service.name': 'codex_cli_rs' }
-      )
+      ),
+      fullIngestPolicy
     );
 
     expect(result.dialect).toBe(codexOtlp);
@@ -259,7 +300,8 @@ describe('otlp context', () => {
           })
         ],
         { 'service.name': 'copilot-chat' }
-      ) as OtlpGroup<OtlpSpan>
+      ) as OtlpGroup<OtlpSpan>,
+      fullIngestPolicy
     );
 
     expect(result.dialect).toBe(genAiOtlp);
@@ -276,7 +318,8 @@ describe('otlp context', () => {
       'logs',
       groupOf([logRecord({ 'event.name': 'user_prompt', 'session.id': 's-1' })], {
         'service.name': 'claude-code'
-      })
+      }),
+      fullIngestPolicy
     );
 
     expect(contextOf(result.mapped)).toHaveLength(0);
@@ -294,7 +337,8 @@ describe('otlp context', () => {
           })
         ],
         { 'service.name': 'my-agent' }
-      ) as OtlpGroup<OtlpSpan>
+      ) as OtlpGroup<OtlpSpan>,
+      fullIngestPolicy
     );
 
     let record = buildMapped(contextOf(result.mapped)[0]!);

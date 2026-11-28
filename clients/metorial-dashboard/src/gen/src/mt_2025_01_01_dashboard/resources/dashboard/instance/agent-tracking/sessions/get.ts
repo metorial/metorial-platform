@@ -42,6 +42,37 @@ export type DashboardInstanceAgentTrackingSessionsGetOutput = {
   };
   requests: number;
   summaryPending: boolean;
+  context: {
+    repositories: {
+      id: string;
+      provider: string | null;
+      host: string | null;
+      owner: string | null;
+      name: string | null;
+      url: string | null;
+    }[];
+    branch: string | null;
+    defaultBranch: string | null;
+    head: string | null;
+    worktree: boolean | null;
+    subPath: string | null;
+    permissionMode: string | null;
+    title: string | null;
+    tickets: { key: string; url: string | null }[];
+    pullRequests: {
+      key: string;
+      provider: string;
+      host: string | null;
+      repository: string;
+      number: number;
+      kind: 'opened' | 'linked';
+      url: string | null;
+    }[];
+    commitCount: number;
+    pullRequestCount: number;
+    lines: { added: number; removed: number };
+  };
+  providers: { id: string; name: string | null }[];
   startedAt: Date;
   lastActivityAt: Date;
   endedAt: Date | null;
@@ -70,6 +101,12 @@ export type DashboardInstanceAgentTrackingSessionsGetOutput = {
       total: number;
     };
   }[];
+  commits: {
+    sha: string;
+    committedAt: Date;
+    branch: string | null;
+    tickets: { key: string; url: string | null }[];
+  }[];
 };
 
 export let mapDashboardInstanceAgentTrackingSessionsGetOutput =
@@ -95,6 +132,21 @@ export let mapDashboardInstanceAgentTrackingSessionsGetOutput =
       ],
       ['tokens', 0, [1, ['cache_read', 'cache_write']]],
       'summary_pending',
+      [
+        'context',
+        0,
+        [
+          1,
+          [
+            'default_branch',
+            'sub_path',
+            'permission_mode',
+            'pull_requests',
+            'commit_count',
+            'pull_request_count'
+          ]
+        ]
+      ],
       'started_at',
       'last_activity_at',
       'ended_at',
@@ -136,7 +188,8 @@ export let mapDashboardInstanceAgentTrackingSessionsGetOutput =
             ]
           ]
         ]
-      ]
+      ],
+      ['commits', 0, [2, [1, ['committed_at']]]]
     ],
     1
   );

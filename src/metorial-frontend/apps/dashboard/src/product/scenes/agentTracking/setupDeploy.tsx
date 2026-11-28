@@ -1,8 +1,7 @@
 import { CodeBlock } from '@metorial/code';
 import type { DashboardInstanceAgentTrackingSetupStatusGetOutput } from '@metorial/dashboard-sdk';
-import { renderWithLoader } from '@metorial/data-hooks';
 import { saveBlob } from '@metorial/file-browser';
-import { useAgentTrackingIngestSources, useAgentTrackingSetupStatus } from '@metorial/state';
+import { useAgentTrackingSetupStatus } from '@metorial/state';
 import {
   Badge,
   Button,
@@ -21,23 +20,23 @@ import { RiDownloadLine, RiFileCopyLine } from '@remixicon/react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { useToggle } from 'react-use';
 import styled from 'styled-components';
-import {
-  agentTrackingErrorStatus,
-  AgentTrackingErrorState,
-  noIngestAddressText
-} from './errorState';
+import { agentTrackingErrorStatus } from './errorState';
 import { WithInfo } from './info';
 import {
   buildClaudeCodeManagedSettings,
   buildManagedSettingsCommands,
   detectManagedSettingsOs,
   ingestionKeyPlaceholder,
+  isOffForOrganization,
   localHistoryDays,
   managedSettingsFileName,
   managedSettingsLocations,
+  organizationSwitchLabel,
   type ClaudeCodeSettingsOptions,
-  type ManagedSettingsOs
+  type ManagedSettingsOs,
+  type OrganizationReporting
 } from './settingsFile';
+import { CommandStep, CopyButton, MissingFile } from './setupParts';
 
 let templateFileName = 'managed-settings.TEMPLATE.json';
 
@@ -71,7 +70,7 @@ let optionDescriptors: OptionDescriptor[] = [
     setting: 'keepLocalHistory',
     label: 'Keep Local History',
     sends: `Nothing. It sets how long Claude Code keeps local session history on every machine that gets this file: ${localHistoryDays} days.`,
-    unlocks: 'Importing past sessions in a later release, which needs that history.',
+    unlocks: 'History Import of past sessions by Metorial Desktop, which reads that history.',
     note: `It overrides each member's own setting, including a longer one: a member who keeps more than ${localHistoryDays} days loses the older history at Claude Code's next cleanup.`,
     availability: 'choice'
   },
@@ -80,17 +79,17 @@ let optionDescriptors: OptionDescriptor[] = [
     setting: 'repository',
     label: 'Repository',
     sends: 'The repository of each session, taken from its git remote.',
-    unlocks: 'Spend by repository, in a later release.',
+    unlocks: 'Spend and Sessions by repository.',
     availability: 'choice'
   },
   {
     id: 'toolDetails',
     setting: 'toolDetails',
-    label: 'Tool Details',
+    label: 'Detailed Tool Reporting',
     sends:
-      'Skill, MCP, agent and plugin names, the branch of commits and the error text of failed tools. With them, Claude Code also sends tool inputs, file paths and commands off the device.',
-    unlocks: 'Skill and MCP usage and spend by branch, in later releases.',
-    note: 'Off by default because it sends tool inputs, file paths and commands. Agent Usage keeps only the length and a keyed hash of each tool input and error text, never the text itself.',
+      "Skill, MCP, agent and plugin names, the branch and commit of Claude Code's own commits (kept only with Session Context on) and the error text of failed tools. With them, Claude Code also sends tool inputs, file paths and commands off the device.",
+    unlocks: 'Skill and MCP server usage on the Tools tab, and Spend by branch.',
+    note: "On by default only when the organization has Detailed Tool Reporting on, because it sends tool inputs, file paths and commands. By default Agent Usage keeps only the size and a fingerprint of each tool input and error text; the text is kept only when this environment's content settings are set to keep it.",
     availability: 'choice'
   },
   {
@@ -98,7 +97,7 @@ let optionDescriptors: OptionDescriptor[] = [
     label: 'Hooks',
     sends: 'Session titles, tool calls and failures.',
     unlocks: 'Session detail.',
-    note: 'Not available yet. It arrives in a later release with its own setup.',
+    note: 'Not part of this file; this page has no setup for hooks.',
     availability: 'later'
   }
 ];
@@ -153,31 +152,15 @@ let HintBadge = ({
   </Tooltip>
 );
 
-let CopyButton = ({
-  value,
-  label,
-  variant = 'outline'
-}: {
-  value: string;
-  label: string;
-  variant?: 'outline' | 'ghost';
-}) => {
-  let { copy, copied } = useCopy(value);
-
-  return (
-    <Button size="1" variant={variant} iconLeft={<RiFileCopyLine />} onClick={() => copy()}>
-      {copied ? 'Copied' : label}
-    </Button>
-  );
-};
-
 let SettingsOptions = ({
   instanceId,
   options,
+  organization,
   onChange
 }: {
   instanceId: string;
   options: ClaudeCodeSettingsOptions;
+  organization: OrganizationReporting | null | undefined;
   onChange: (options: ClaudeCodeSettingsOptions) => void;
 }) => {
   let setupStatus = useAgentTrackingSetupStatus(instanceId);
@@ -197,95 +180,55 @@ let SettingsOptions = ({
         </>
       ) : null}
 
-      {optionDescriptors.map(option => (
-        <OptionRow key={option.id}>
-          <Flex direction="column" gap={4} style={{ minWidth: 0 }}>
-            <WithInfo info={option.note}>
-              <Text size="2" weight="strong">
-                {option.label}
+      {optionDescriptors.map(option => {
+        let offForOrganization =
+          !!option.setting && isOffForOrganization(option.setting, organization);
+
+        return (
+          <OptionRow key={option.id}>
+            <Flex direction="column" gap={4} style={{ minWidth: 0 }}>
+              <WithInfo info={option.note}>
+                <Text size="2" weight="strong">
+                  {option.label}
+                </Text>
+              </WithInfo>
+              <Text size="2" color="gray700">
+                Sends: {option.sends}
               </Text>
-            </WithInfo>
-            <Text size="2" color="gray700">
-              Sends: {option.sends}
-            </Text>
-            <Text size="2" color="gray700">
-              Unlocks: {option.unlocks}
-            </Text>
-          </Flex>
+              <Text size="2" color="gray700">
+                Unlocks: {option.unlocks}
+              </Text>
+              {offForOrganization ? (
+                <Text size="2" color="gray600">
+                  This organization has {organizationSwitchLabel(option.setting!)} turned off;
+                  an organization admin can turn it on in the Agent Usage settings.
+                </Text>
+              ) : null}
+            </Flex>
 
-          <Flex align="center" gap={12} style={{ flexShrink: 0 }}>
-            {setupStatus.data && option.availability != 'later' ? (
-              <HintBadge {...detectionBadges[setupStatus.data.options[option.id]]} />
-            ) : null}
+            <Flex align="center" gap={12} style={{ flexShrink: 0 }}>
+              {setupStatus.data && option.availability != 'later' ? (
+                <HintBadge {...detectionBadges[setupStatus.data.options[option.id]]} />
+              ) : null}
 
-            <Switch
-              label={option.label}
-              hideLabel
-              checked={
-                option.setting ? options[option.setting] : option.availability == 'always'
-              }
-              disabled={!option.setting}
-              onCheckedChange={checked =>
-                option.setting && onChange({ ...options, [option.setting]: checked })
-              }
-            />
-          </Flex>
-        </OptionRow>
-      ))}
+              <Switch
+                label={option.label}
+                hideLabel
+                checked={
+                  option.setting
+                    ? options[option.setting] && !offForOrganization
+                    : option.availability == 'always'
+                }
+                disabled={!option.setting || offForOrganization}
+                onCheckedChange={checked =>
+                  option.setting && onChange({ ...options, [option.setting]: checked })
+                }
+              />
+            </Flex>
+          </OptionRow>
+        );
+      })}
     </div>
-  );
-};
-
-let CommandStep = ({
-  title,
-  command,
-  language
-}: {
-  title: string;
-  command: string;
-  language: string;
-}) => (
-  <>
-    <Text size="2" weight="medium">
-      {title}
-    </Text>
-    <CodeBlock code={command} language={language} lineNumbers={false} />
-    <div>
-      <CopyButton value={command} label="Copy Command" />
-    </div>
-  </>
-);
-
-let MissingFile = ({
-  instanceId,
-  notConfigured
-}: {
-  instanceId: string;
-  notConfigured: boolean;
-}) => {
-  let activeKeys = useAgentTrackingIngestSources(instanceId, { limit: 1, status: 'active' });
-
-  if (notConfigured) {
-    return (
-      <Text size="2" color="gray600">
-        The file is built from an ingestion key.
-      </Text>
-    );
-  }
-
-  return renderWithLoader(
-    { activeKeys },
-    { error: error => <AgentTrackingErrorState error={error} onRetry={activeKeys.refetch} /> }
-  )(({ activeKeys }) =>
-    activeKeys.data.items.length ? (
-      <Callout color="gray">
-        {noIngestAddressText} No file can be built, but existing keys can still be revoked.
-      </Callout>
-    ) : (
-      <Text size="2" color="gray600">
-        Create an ingestion key first. The file is built from it.
-      </Text>
-    )
   );
 };
 
@@ -459,12 +402,14 @@ export let DeployInstructions = ({
   file,
   notConfigured,
   options,
+  organization,
   onOptionsChange
 }: {
   instanceId: string;
   file: ManagedSettingsFile | null;
   notConfigured: boolean;
   options: ClaudeCodeSettingsOptions;
+  organization: OrganizationReporting | null | undefined;
   onOptionsChange: (options: ClaudeCodeSettingsOptions) => void;
 }) => {
   let [mode, setMode] = useState<DeployMode>('machine');
@@ -512,6 +457,7 @@ export let DeployInstructions = ({
         <SettingsOptions
           instanceId={instanceId}
           options={options}
+          organization={organization}
           onChange={onOptionsChange}
         />
       ) : null}

@@ -9,6 +9,9 @@ import {
   DashboardInstanceAgentTrackingSpendBreakdownQuery,
   DashboardInstanceAgentTrackingSpendReportQuery,
   DashboardInstanceAgentTrackingSpendTimelineQuery,
+  DashboardInstanceAgentTrackingToolsMcpServersQuery,
+  DashboardInstanceAgentTrackingToolsProviderCallsQuery,
+  DashboardInstanceAgentTrackingToolsSkillsQuery,
   DashboardInstanceAgentTrackingViewsCreateBody,
   DashboardInstanceAgentTrackingViewsListQuery,
   DashboardInstanceAgentTrackingViewsUpdateBody,
@@ -109,6 +112,47 @@ export let useAgentTrackingSpendReport = (
   query: DashboardInstanceAgentTrackingSpendReportQuery | null
 ) => agentTrackingSpendReportLoader.use(instanceId && query ? { instanceId, ...query } : null);
 
+export let agentTrackingSkillUsageLoader = createLoader({
+  name: 'agentTrackingSkillUsage',
+  parents: [],
+  fetch: (i: { instanceId: string } & DashboardInstanceAgentTrackingToolsSkillsQuery) =>
+    withAuth(sdk => sdk.agentTracking.tools.skills(i.instanceId, i)),
+  mutators: {}
+});
+
+export let useAgentTrackingSkillUsage = (
+  instanceId: string | null | undefined,
+  query: DashboardInstanceAgentTrackingToolsSkillsQuery | null
+) => agentTrackingSkillUsageLoader.use(instanceId && query ? { instanceId, ...query } : null);
+
+export let agentTrackingMcpServerUsageLoader = createLoader({
+  name: 'agentTrackingMcpServerUsage',
+  parents: [],
+  fetch: (i: { instanceId: string } & DashboardInstanceAgentTrackingToolsMcpServersQuery) =>
+    withAuth(sdk => sdk.agentTracking.tools.mcpServers(i.instanceId, i)),
+  mutators: {}
+});
+
+export let useAgentTrackingMcpServerUsage = (
+  instanceId: string | null | undefined,
+  query: DashboardInstanceAgentTrackingToolsMcpServersQuery | null
+) =>
+  agentTrackingMcpServerUsageLoader.use(instanceId && query ? { instanceId, ...query } : null);
+
+export let agentTrackingProviderCallsLoader = createLoader({
+  name: 'agentTrackingProviderCalls',
+  parents: [],
+  fetch: (i: { instanceId: string } & DashboardInstanceAgentTrackingToolsProviderCallsQuery) =>
+    withAuth(sdk => sdk.agentTracking.tools.providerCalls(i.instanceId, i)),
+  mutators: {}
+});
+
+export let useAgentTrackingProviderCalls = (
+  instanceId: string | null | undefined,
+  query: DashboardInstanceAgentTrackingToolsProviderCallsQuery | null
+) =>
+  agentTrackingProviderCallsLoader.use(instanceId && query ? { instanceId, ...query } : null);
+
 export let agentTrackingSessionsLoader = createLoader({
   name: 'agentTrackingSessions',
   parents: [],
@@ -142,6 +186,40 @@ export let useAgentTrackingSession = (
   sessionId: string | null | undefined
 ) =>
   agentTrackingSessionLoader.use(instanceId && sessionId ? { instanceId, sessionId } : null);
+
+export let agentTrackingSessionToolCallsLoader = createLoader({
+  name: 'agentTrackingSessionToolCalls',
+  parents: [],
+  fetch: (i: { instanceId: string; sessionId: string }) =>
+    withAuth(sdk => sdk.agentTracking.sessions.toolCalls.list(i.instanceId, i.sessionId)),
+  mutators: {}
+});
+
+export let useAgentTrackingSessionToolCalls = (
+  instanceId: string | null | undefined,
+  sessionId: string | null | undefined
+) =>
+  agentTrackingSessionToolCallsLoader.use(
+    instanceId && sessionId ? { instanceId, sessionId } : null
+  );
+
+export let agentTrackingToolCallSessionsLoader = createLoader({
+  name: 'agentTrackingToolCallSessions',
+  parents: [],
+  fetch: (i: { instanceId: string; toolCallIds: string[] }) =>
+    withAuth(sdk =>
+      sdk.agentTracking.toolCallSessions.list(i.instanceId, { toolCallId: i.toolCallIds })
+    ),
+  mutators: {}
+});
+
+export let useAgentTrackingToolCallSessions = (
+  instanceId: string | null | undefined,
+  toolCallIds: string[] | null | undefined
+) =>
+  agentTrackingToolCallSessionsLoader.use(
+    instanceId && toolCallIds?.length ? { instanceId, toolCallIds } : null
+  );
 
 export let agentTrackingFilterValuesLoader = createLoader({
   name: 'agentTrackingFilterValues',
@@ -275,8 +353,13 @@ export let agentTrackingOrganizationSettingsLoader = createLoader({
     agentTrackingSpendTimelineLoader,
     agentTrackingSpendBreakdownLoader,
     agentTrackingSpendReportLoader,
+    agentTrackingSkillUsageLoader,
+    agentTrackingMcpServerUsageLoader,
     agentTrackingSessionsLoader,
     agentTrackingSessionLoader,
+    agentTrackingSessionToolCallsLoader,
+    agentTrackingToolCallSessionsLoader,
+    agentTrackingProviderCallsLoader,
     agentTrackingFilterValuesLoader,
     agentTrackingMembersLoader,
     agentTrackingMemberInsightsLoader

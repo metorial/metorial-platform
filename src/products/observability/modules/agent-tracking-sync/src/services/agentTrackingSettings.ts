@@ -26,6 +26,8 @@ import { pushInstanceScope, pushOrganizationScope, pushProjectScope } from '../l
 import {
   instanceSettingsOf,
   narrowsCapture,
+  narrowsDesktop,
+  normalizeTicketUrlTemplate,
   organizationSettingsOf,
   projectSettingsOf,
   readInstanceSettings,
@@ -106,17 +108,19 @@ let organizationLevel = (
       organizationSettingsOf(d.organization, row)
     ),
   write: settings =>
-    withTransaction(async db =>
-      db.agentTrackingOrganizationSettings.upsert({
+    withTransaction(async db => {
+      let data = { ...settings.privacy, ...settings.desktop, ...settings.links };
+
+      return await db.agentTrackingOrganizationSettings.upsert({
         where: { organizationOid: d.organization.oid },
         create: {
           id: await ID.generateId('agentTrackingOrganizationSettings'),
           organizationOid: d.organization.oid,
-          ...settings.privacy
+          ...data
         },
-        update: settings.privacy
-      })
-    ),
+        update: data
+      });
+    }),
   push: organizationSettings =>
     pushOrganizationScope({
       agentTracking: requireAgentTracking(),
@@ -131,7 +135,8 @@ let organizationLevel = (
     );
     return holds(organization.settings, serviceOrganizationSettings(settings));
   },
-  syncTarget: { type: 'organization', id: d.organization.id }
+  syncTarget: { type: 'organization', id: d.organization.id },
+  narrows: narrowsDesktop
 });
 
 let projectLevel = (d: ProjectScope): Level<AgentTrackingProjectSettingsValues> => ({
@@ -212,11 +217,18 @@ let instanceLevel = (d: InstanceScope): Level<AgentTrackingInstanceSettingsValue
 });
 
 class AgentTrackingSettingsServiceImpl {
-  async getPrivacy(d: { organization: Pick<Organization, 'id'> }) {
+  async getOrganizationValues(d: { organization: Pick<Organization, 'id'> }) {
     return organizationSettingsOf(
       d.organization,
       await readOrganizationSettings(d.organization.id)
-    ).privacy;
+    );
+  }
+
+  async getProjectValues(d: {
+    organization: Pick<Organization, 'id'>;
+    project: Pick<Project, 'id'>;
+  }) {
+    return projectSettingsOf(d, await readProjectSettings(d.project.id));
   }
 
   async getOrganizationSettings(d: OrganizationScope) {
@@ -228,9 +240,9 @@ class AgentTrackingSettingsServiceImpl {
   }
 
   async getInstanceSettings(d: InstanceScope) {
-    let [result, privacy] = await Promise.all([
+    let [result, { privacy }] = await Promise.all([
       this.get(instanceLevel(d)),
-      this.getPrivacy(d)
+      this.getOrganizationValues(d)
     ]);
 
     return { ...result, privacy };
@@ -239,10 +251,18 @@ class AgentTrackingSettingsServiceImpl {
   async updateOrganizationSettings(
     d: OrganizationScope & {
       auditScope: AuditScope;
-      input: Pick<AgentTrackingSettingsInput, 'privacy'>;
+      input: Pick<AgentTrackingSettingsInput, 'privacy' | 'desktop' | 'links'>;
     }
   ) {
-    return await this.update(organizationLevel(d), d);
+    return await this.update(organizationLevel(d), {
+      ...d,
+      input: {
+        ...d.input,
+        links: d.input.links && {
+          ticketUrlTemplate: normalizeTicketUrlTemplate(d.input.links.ticketUrlTemplate)
+        }
+      }
+    });
   }
 
   async updateProjectSettings(
@@ -260,9 +280,9 @@ class AgentTrackingSettingsServiceImpl {
       input: Pick<AgentTrackingSettingsInput, 'content' | 'classification'>;
     }
   ) {
-    let [result, privacy] = await Promise.all([
+    let [result, { privacy }] = await Promise.all([
       this.update(instanceLevel(d), d),
-      this.getPrivacy(d)
+      this.getOrganizationValues(d)
     ]);
 
     return { ...result, privacy };

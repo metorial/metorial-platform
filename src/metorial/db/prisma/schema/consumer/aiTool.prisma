@@ -1,0 +1,27 @@
+enum AiToolPolicyStatus {
+  sanctioned
+  not_sanctioned
+  unreviewed
+}
+
+model AiToolPolicy {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  toolKey String
+
+  status AiToolPolicyStatus
+  note   String?
+
+  decidedAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  decidedByActorOid BigInt?
+  decidedByActor    OrganizationActor? @relation(fields: [decidedByActorOid], references: [oid], onDelete: SetNull)
+
+  @@unique([instanceOid, toolKey])
+}

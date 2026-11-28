@@ -1,9 +1,10 @@
 import type { PaginatorInput } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { lookupMembers, unique } from '../lib/members';
+import { unique } from '../lib/entities';
+import { lookupMembers } from '../lib/members';
 import { costOf, countOf } from '../lib/money';
 import { pageByAnchor } from '../lib/pageByAnchor';
-import { loadVisiblePrivacy } from '../lib/privacy';
+import { loadVisibleSettings } from '../lib/privacy';
 import {
   memberWindowDays,
   membersQuery,
@@ -28,7 +29,7 @@ class AgentTrackingMemberServiceImpl {
   async listMembers(
     d: ReadScope & { page: PaginatorInput; range?: RangeInput; memberIds?: string[] }
   ): Promise<AgentTrackingMemberList> {
-    await loadVisiblePrivacy(d);
+    await loadVisibleSettings(d);
 
     let range = hasRange(d.range) ? normalizeRange(d.range) : undefined;
     let memberIds = d.memberIds ? unique(d.memberIds) : undefined;

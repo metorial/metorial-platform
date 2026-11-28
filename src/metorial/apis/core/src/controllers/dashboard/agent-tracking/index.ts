@@ -4,4 +4,5 @@ export * from './member';
 export * from './settings';
 export * from './setupStatus';
 export * from './spend';
+export * from './tool';
 export * from './view';

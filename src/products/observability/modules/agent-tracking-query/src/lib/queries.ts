@@ -10,6 +10,7 @@ import type {
   AgentTrackingSpendFilters,
   BreakdownGroup,
   FilterField,
+  SpendGroup,
   SpendReportGroup
 } from './types';
 
@@ -39,6 +40,10 @@ let engineMaxLimit = 10_000;
 
 export let maxDistinctCount = 10_000;
 
+export let agentActiveWindowDays = 30;
+
+export let agentActivityLookbackDays = 60;
+
 let sessionModelsLimit = 50;
 
 export let sessionCountColumn = 'sessions_active';
@@ -53,22 +58,40 @@ export let distinctCappedWarning = 'distinct_capped';
 
 export let retentionClippedWarning = 'retention_clipped';
 
-export let breakdownGroups = { member: 'user', model: 'model' } as const satisfies Record<
-  BreakdownGroup,
-  string
->;
+export let breakdownGroups = {
+  member: 'user',
+  model: 'model',
+  repository: 'repo',
+  branch: 'branch',
+  ticket: 'ticket'
+} as const satisfies Record<BreakdownGroup, string>;
 
 export let filterFields = {
   member: 'user',
   model: 'model',
   client: 'client.family',
-  seat: 'billing.seat'
+  seat: 'billing.seat',
+  repository: 'repo',
+  branch: 'branch',
+  ticket: 'ticket',
+  provider: 'metorial.provider'
 } as const satisfies Record<FilterField, string>;
 
+export let filterValueDatasets: Partial<Record<FilterField, 'requests' | 'tool_calls'>> = {
+  seat: 'requests',
+  provider: 'tool_calls'
+};
+
 export let reportBreakdownGroups = {
-  ...breakdownGroups,
+  member: breakdownGroups.member,
+  model: breakdownGroups.model,
   client: filterFields.client
 } as const satisfies Record<SpendReportGroup, string>;
+
+export let spendGroupColumns = {
+  ...breakdownGroups,
+  ...reportBreakdownGroups
+} as const satisfies Record<SpendGroup, string>;
 
 export let breakdownGroupKeys = Object.keys(breakdownGroups) as BreakdownGroup[];
 
@@ -91,7 +114,19 @@ export let spendMeasures = [
     where: { field: 'cost.list', op: 'isNull' },
     as: 'requests_without_list_price'
   },
-  'tokens'
+  'tokens',
+  {
+    fn: 'sum',
+    field: 'tokens.total',
+    where: { field: 'cost.usd', op: 'isNull' },
+    as: 'tokens_without_cost'
+  },
+  {
+    fn: 'sum',
+    field: 'tokens.total',
+    where: { field: 'cost.list', op: 'isNull' },
+    as: 'tokens_without_list_price'
+  }
 ];
 
 // A slice that only marks a session start does not count. Total tokens is not stored, so its
@@ -118,11 +153,11 @@ type Filter = Record<string, unknown>;
 
 let allOf = (clauses: Filter[]) => (clauses.length > 1 ? { and: clauses } : clauses[0]);
 
-// The engine rejects a request-record range longer than its limit, measured exactly.
-export let assertRequestRange = (range: { from: Date; to: Date }, subject: string) => {
+// The engine rejects a raw-record range longer than its limit, measured exactly.
+export let assertRecordRange = (range: { from: Date; to: Date }, subject: string) => {
   if (range.to.getTime() - range.from.getTime() > requestRecordDays * dayMs) {
     throw invalidInputError(
-      `${subject} come from request records, which cover at most ${requestRecordDays} days. Choose a range of at most ${requestRecordDays} days.`
+      `${subject} come from individual records, which are kept for ${requestRecordDays} days. Choose a range of at most ${requestRecordDays} days.`
     );
   }
 };
@@ -212,14 +247,13 @@ export let sessionModelsQuery = (d: {
 
 export let breakdownQuery = (d: {
   range: ResolvedRange;
-  groupBy: SpendReportGroup;
+  groupBy: SpendGroup;
   filters?: AgentTrackingSpendFilters;
   limit?: number;
 }) => ({
   ...usageQuery(d.range, spendWhere(d.filters ?? {})),
-  dimensions: [reportBreakdownGroups[d.groupBy]],
+  dimensions: [spendGroupColumns[d.groupBy]],
   measures: spendMeasures,
-  derived: [{ as: 'share', expr: { shareOfTotal: 'cost.usd' }, format: 'percent' }],
   orderBy: [{ by: 'cost.usd', direction: 'desc' }],
   limit: d.limit ?? breakdownLimit,
   other: true,
@@ -290,6 +324,33 @@ export let toolDetailsQuery = (range: { from: Date; to: Date }) => ({
     ]
   },
   measures: [{ fn: 'count', as: 'tool_calls_with_details' }],
+  labels: false
+});
+
+// The sessions dataset is ranged by start, so the window reaches further back than the activity
+// filter to catch long sessions that are still active.
+export let agentActivityQuery = (d: {
+  window: { from: Date; to: Date };
+  activeSince: Date;
+  agentKeys: string[];
+  byMember: boolean;
+}) => ({
+  atq: '0',
+  dataset: 'sessions',
+  range: queryRange(d.window),
+  where: {
+    and: [
+      { field: 'lastActivityAt', op: 'gte', value: d.activeSince.toISOString() },
+      { field: 'agent', op: 'in', value: d.agentKeys }
+    ]
+  },
+  dimensions: [
+    { field: 'agent', missing: 'exclude' },
+    ...(d.byMember ? [{ field: 'user', missing: 'exclude' }] : [])
+  ],
+  measures: ['last_activity'],
+  orderBy: [{ by: 'last_activity', direction: 'desc' }],
+  limit: maxMembers,
   labels: false
 });
 
@@ -378,7 +439,7 @@ export let memberInsightsUsageQuery = (d: {
   ...usageQuery(d.range, undefined),
   dimensions: ['user'],
   measures: [
-    ...spendMeasures.filter(measure => measure != 'tokens'),
+    ...spendMeasures,
     ...activityMeasures,
     costWhere({ field: 'user', op: 'isNull' }, insightColumns.unattributedCost),
     ...(d.modelIds

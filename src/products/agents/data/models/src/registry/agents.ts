@@ -351,5 +351,61 @@ export let agentSeeds: AgentSeed[] = [
     openSource: false,
     surfaces: ['cli'],
     aliases: ['muse']
+  },
+  {
+    id: 'claude-desktop',
+    name: 'Claude Desktop',
+    makerId: 'anthropic',
+    description: "Anthropic's Claude chat app for macOS and Windows.",
+    website: 'https://claude.ai/download',
+    docs: 'https://support.claude.com',
+    openSource: false,
+    surfaces: ['desktop'],
+    vendors: [{ vendorId: 'anthropic', role: 'default' }]
+  },
+  {
+    id: 'chatgpt',
+    name: 'ChatGPT',
+    makerId: 'openai',
+    description: "OpenAI's ChatGPT assistant on the desktop and the web.",
+    website: 'https://chatgpt.com',
+    docs: 'https://help.openai.com',
+    openSource: false,
+    surfaces: ['desktop', 'web'],
+    aliases: ['chatgpt-desktop'],
+    vendors: [{ vendorId: 'openai', role: 'default' }]
+  },
+  {
+    id: 'perplexity',
+    name: 'Perplexity',
+    makerId: 'perplexity',
+    description: "Perplexity's AI answer engine on the desktop and the web.",
+    website: 'https://www.perplexity.ai',
+    openSource: false,
+    surfaces: ['desktop', 'web'],
+    aliases: ['perplexity-desktop']
+  },
+  {
+    id: 'ollama',
+    name: 'Ollama',
+    makerId: 'ollama',
+    description: 'Runs open-weight models on the local machine, with a desktop app and a CLI.',
+    website: 'https://ollama.com',
+    docs: 'https://docs.ollama.com',
+    repository: 'https://github.com/ollama/ollama',
+    openSource: true,
+    license: 'MIT',
+    surfaces: ['desktop', 'cli']
+  },
+  {
+    id: 'lm-studio',
+    name: 'LM Studio',
+    makerId: 'lmstudio',
+    description: 'Desktop app and CLI for running open-weight models on the local machine.',
+    website: 'https://lmstudio.ai',
+    docs: 'https://lmstudio.ai/docs',
+    openSource: false,
+    surfaces: ['desktop', 'cli'],
+    aliases: ['lmstudio']
   }
 ];

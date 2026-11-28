@@ -5,6 +5,7 @@ import { readFields, withCoerced, type FieldReader } from '../fields';
 import { classifyTool, parseMcpToolName, type ToolRef } from '../tools';
 import type { HookContext, HookDialect, Mapped } from '../types';
 import { errorFromStatus, nativeLabel, own, type ErrorClass } from '../values';
+import { withHookPolicy } from './policy';
 
 let maxHookEventLength = 64;
 
@@ -85,18 +86,19 @@ let identityOf = (state: HookState, suffix = '') => {
   ].join('|');
 };
 
-let toolOf = (fields: FieldReader): ToolRef | undefined => {
+let toolOf = (state: HookState): ToolRef | undefined => {
+  let { fields } = state;
   let name = fields.str('tool_name', 'toolName');
   if (!name) return undefined;
 
-  let server = fields.obj('mcp_server');
-  let serverName = typeof server?.name == 'string' ? server.name : undefined;
+  let server = fields.raw('mcp_server');
+  let serverName = fields.str('mcp_server') ?? fields.obj('mcp_server')?.name;
 
-  let explicit = serverName
-    ? { mcpServer: serverName, mcpTool: parseMcpToolName(name)?.tool ?? name }
-    : {};
-
-  return classifyTool(name, explicit);
+  return classifyTool(name, {
+    server: typeof serverName == 'string' ? serverName : server,
+    mcpTool: parseMcpToolName(name)?.tool,
+    client: state.options.client
+  });
 };
 
 let baseDraft = (
@@ -209,7 +211,7 @@ let mapEvent = (state: HookState): RecordDraft[] => {
     }
 
     case 'PreToolUse': {
-      let tool = toolOf(fields);
+      let tool = toolOf(state);
 
       return [
         withData(
@@ -228,7 +230,7 @@ let mapEvent = (state: HookState): RecordDraft[] => {
 
     case 'PermissionRequest':
     case 'PermissionDenied': {
-      let tool = toolOf(fields);
+      let tool = toolOf(state);
       let denied = event == 'PermissionDenied';
 
       return [
@@ -258,7 +260,7 @@ let mapEvent = (state: HookState): RecordDraft[] => {
 
     case 'PostToolUse':
     case 'PostToolUseFailure': {
-      let tool = toolOf(fields);
+      let tool = toolOf(state);
       let failed = event == 'PostToolUseFailure';
       let interrupted = fields.bool('is_interrupt', 'isInterrupt') === true;
       let duration = fields.count('duration_ms', 'durationMs');
@@ -422,7 +424,8 @@ export let createCompatibleHookDialect = (options: CompatibleHookOptions): HookD
   client: options.client,
 
   map: (context, payload): Mapped[] => {
-    let fields = readFields(payload, 'payload.');
+    let { policy } = context;
+    let fields = readFields(withHookPolicy(payload, policy), 'payload.');
     let event = eventNameOf(fields) ?? 'unknown';
 
     let state: HookState = { fields, event, context, options };
@@ -432,6 +435,9 @@ export let createCompatibleHookDialect = (options: CompatibleHookOptions): HookD
       draft
     }));
 
-    return withCoerced(withHookContext(mapped, fields, event), fields);
+    return withCoerced(
+      policy.sessionContext ? withHookContext(mapped, fields, event) : mapped,
+      fields
+    );
   }
 });

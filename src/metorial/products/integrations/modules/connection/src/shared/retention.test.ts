@@ -155,6 +155,27 @@ describe('createMessage retention', () => {
     expect(data.toolCall).toBeUndefined();
   });
 
+  it.each(['full', 'intent_only'])('stores the client call id at %s', async level => {
+    await createMessage({
+      ...baseProps,
+      session: sessionAt(level),
+      tool,
+      clientCall: { id: 'toolu_01abc', source: 'claude-code' }
+    });
+
+    let data = createdData();
+    expect(data.toolCall.create.clientCallId).toBe('toolu_01abc');
+    expect(data.toolCall.create.clientCallSource).toBe('claude-code');
+  });
+
+  it('leaves the client call columns empty without a client call', async () => {
+    await createMessage({ ...baseProps, session: sessionAt('full'), tool });
+
+    let data = createdData();
+    expect(data.toolCall.create.clientCallId).toBeNull();
+    expect(data.toolCall.create.clientCallSource).toBeNull();
+  });
+
   it('records hasOutput for billing even when the payload is not stored', async () => {
     await createMessage({
       ...baseProps,

@@ -2,11 +2,28 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { useAgentTrackingInstanceSettings, useCurrentInstance } from '@metorial/state';
 import { Callout } from '@metorial/ui';
 import React from 'react';
+import { useAgentTrackingAvailability } from './access';
 import { AgentTrackingErrorState, PrivacySettingsButton } from './errorState';
+import { individualsVisibility } from './individuals';
 
-export let useAgentTrackingPrivacy = () => {
+export let useAgentTrackingIndividualsVisibility = (opts: { enabled?: boolean } = {}) => {
   let instance = useCurrentInstance();
-  return useAgentTrackingInstanceSettings(instance.data?.id);
+  let { access, enabled, available } = useAgentTrackingAvailability();
+  let settings = useAgentTrackingInstanceSettings(
+    available && opts.enabled !== false ? instance.data?.id : null
+  );
+
+  let visibility = individualsVisibility({
+    enabled,
+    scopes: { loaded: !!access.data || !!access.error, hasScope: access.hasScope },
+    settings: {
+      loaded: !!settings.data,
+      failed: !!settings.error,
+      hideIndividuals: !!settings.data?.privacy.hideIndividuals
+    }
+  });
+
+  return { visibility, settings };
 };
 
 let IndividualsHiddenNotice = ({ subject }: { subject: string }) => (
@@ -23,16 +40,12 @@ export let AgentTrackingIndividualsGate = ({
   subject: string;
   children: React.ReactNode;
 }) => {
-  let settings = useAgentTrackingPrivacy();
+  let { visibility, settings } = useAgentTrackingIndividualsVisibility();
 
   return renderWithLoader(
     { settings },
     { error: error => <AgentTrackingErrorState error={error} onRetry={settings.refetch} /> }
-  )(({ settings }) =>
-    settings.data.privacy.hideIndividuals ? (
-      <IndividualsHiddenNotice subject={subject} />
-    ) : (
-      <>{children}</>
-    )
+  )(() =>
+    visibility == 'hidden' ? <IndividualsHiddenNotice subject={subject} /> : <>{children}</>
   );
 };

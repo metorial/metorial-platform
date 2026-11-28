@@ -4,7 +4,7 @@ import type {
   SessionContextTag
 } from '@mtsrc/agent-tracking-spec';
 import { contextFingerprint, sessionContextType } from '@mtsrc/agent-tracking-records-model';
-import { parseRemote, repoFromParts } from '@mtsrc/agent-tracking-records-model';
+import { parseRemote, repoFromParts, repoFromSlug } from '@mtsrc/agent-tracking-records-model';
 import { normalizeRoot } from '@mtsrc/agent-tracking-records-model';
 import {
   configTags,
@@ -16,11 +16,13 @@ import { ticketRefsFromBranch } from '@mtsrc/agent-tracking-records-model';
 import type { RecordDraft } from '@mtsrc/agent-tracking-records-model';
 import { readFields, type FieldReader, type FieldSource } from './fields';
 import type { Mapped } from './types';
-
-let maxBranchLength = 256;
+import { cleanBranch, cleanHex } from './values';
 
 let headPattern = /^[0-9a-f]{7,64}$/i;
 let ownerNamePattern = /^[\w.-]+\/[\w.-]+$/;
+
+let otlpContextPrefixes = ['vcs.', 'github.copilot.git.', 'copilot_chat.repo.'];
+let otlpContextKeys = new Set(['workspace.host_paths']);
 
 // Hooks carry cwd on every event; context is taken at the points where it can change, or whenever
 // the probe enriched the payload, so a session gets one context record per change.
@@ -35,20 +37,21 @@ let hookContextEvents = new Set([
 export type ContextClaims = {
   source: SessionContextSource;
   root?: string;
+  workspaceKey?: string;
   repo?: SessionContextRepo;
   branch?: string;
   head?: string;
+  defaultBranch?: string;
+  worktree?: boolean;
+  subPath?: string;
+  permissionMode?: string;
+  title?: string;
+  parentSessionId?: string;
+  surface?: string;
   tags: SessionContextTag[];
 };
 
-let cleanBranch = (value: string | undefined) => {
-  let branch = value?.replace(/[\u0000-\u001f\u007f]/g, '').trim();
-
-  return branch && branch.length <= maxBranchLength ? branch : undefined;
-};
-
-let cleanHead = (value: string | undefined) =>
-  value && headPattern.test(value.trim()) ? value.trim().toLowerCase() : undefined;
+let cleanHead = (value: string | undefined) => cleanHex(value, headPattern);
 
 let firstString = (value: unknown) => {
   if (typeof value == 'string') return value || undefined;
@@ -57,33 +60,32 @@ let firstString = (value: unknown) => {
   return value.find((entry): entry is string => typeof entry == 'string' && entry.length > 0);
 };
 
-let hasContext = (claims: ContextClaims) =>
-  !!(
-    normalizeRoot(claims.root) ||
-    claims.repo ||
-    claims.branch ||
-    claims.head ||
-    claims.tags.length
-  );
-
 export let contextDraft = (
   base: Pick<RecordDraft, 'client' | 'actor' | 'occurredAt' | 'signalName' | 'ctx'>,
   claims: ContextClaims
 ): RecordDraft | null => {
   let sessionId = base.ctx?.sessionId;
-  if (!sessionId || !hasContext(claims)) return null;
-
   let root = normalizeRoot(claims.root);
   let ticketRefs = ticketRefsFromBranch(claims.branch);
+  let { parentSessionId, surface } = claims;
 
   let data: Record<string, unknown> = {
     source: claims.source,
     ...(claims.repo ? { repo: claims.repo } : {}),
     ...(claims.branch ? { branch: claims.branch } : {}),
     ...(claims.head ? { head: claims.head } : {}),
+    ...(claims.defaultBranch ? { default_branch: claims.defaultBranch } : {}),
+    ...(claims.worktree !== undefined ? { worktree: claims.worktree } : {}),
+    ...(claims.subPath ? { sub_path: claims.subPath } : {}),
+    ...(claims.permissionMode ? { permission_mode: claims.permissionMode } : {}),
+    ...(claims.title ? { title: claims.title } : {}),
+    ...(claims.workspaceKey ? { workspace_key: claims.workspaceKey } : {}),
     ...(claims.tags.length ? { tags: claims.tags } : {}),
     ...(ticketRefs.length ? { ticket_refs: ticketRefs } : {})
   };
+
+  let empty = !root && !parentSessionId && !surface && Object.keys(data).length == 1;
+  if (!sessionId || empty) return null;
 
   return {
     kind: 'event',
@@ -91,13 +93,13 @@ export let contextDraft = (
     identity: [
       sessionContextType,
       sessionId,
-      contextFingerprint({ ...data, source: undefined, root })
+      contextFingerprint({ ...data, source: undefined, root, parentSessionId, surface })
     ].join('|'),
     signalName: base.signalName,
     occurredAt: base.occurredAt,
     client: base.client,
     ...(base.actor ? { actor: base.actor } : {}),
-    ctx: { sessionId },
+    ctx: { sessionId, ...(parentSessionId ? { parentSessionId } : {}) },
     data,
     content: root ? [{ role: 'path', value: root }] : []
   };
@@ -156,6 +158,9 @@ export let withHookContext = (
 
 type OtlpContextPart = Omit<ContextClaims, 'source'>;
 
+export let isOtlpContextAttribute = (key: string) =>
+  otlpContextKeys.has(key) || otlpContextPrefixes.some(prefix => key.startsWith(prefix));
+
 let copilotRepo = (value: string | undefined) => {
   if (!value) return undefined;
 
@@ -164,16 +169,18 @@ let copilotRepo = (value: string | undefined) => {
 
   if (!ownerNamePattern.test(value.trim())) return undefined;
 
-  let [owner, name] = value.trim().split('/');
-  return repoFromParts({ provider: 'github', owner, name }) ?? undefined;
+  return repoFromSlug('github', value.trim()) ?? undefined;
+};
+
+export let otlpHeadBranch = (fields: FieldReader) => {
+  let headType = fields.str('vcs.ref.head.type');
+
+  return !headType || headType == 'branch' ? fields.str('vcs.ref.head.name') : undefined;
 };
 
 export let readOtlpContext = (attributes: FieldSource): OtlpContextPart => {
   let fields = readFields(attributes, '');
-
-  let headType = fields.str('vcs.ref.head.type');
-  let vcsBranch =
-    !headType || headType == 'branch' ? fields.str('vcs.ref.head.name') : undefined;
+  let vcsBranch = otlpHeadBranch(fields);
 
   let repo =
     parseRemote(fields.str('vcs.repository.url.full', 'vcs.repository.url')) ??

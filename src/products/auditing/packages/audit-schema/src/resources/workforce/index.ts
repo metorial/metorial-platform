@@ -1,5 +1,6 @@
 import { portalSsoAccessAuditResource } from './portalSsoAccess';
 import { resourceSet } from '../../_lib/resource';
+import { aiToolPolicyAuditResource } from './aiToolPolicy';
 import {
   consumerAuditResource,
   consumerProfileAuditResource,
@@ -11,6 +12,7 @@ import {
 } from './consumerAccess';
 import { consumerAccessRequestAuditResource } from './consumerAccessRequest';
 import { consumerDeviceAuditResource } from './consumerDevice';
+import { consumerDeviceSettingsAuditResource } from './consumerDeviceSettings';
 import { consumerGroupAuditResource } from './consumerGroup';
 import { consumerInviteAuditResource } from './consumerInvite';
 import {
@@ -41,6 +43,8 @@ export let workforceResources = resourceSet({
   consumer_surface: consumerSurfaceAuditResource,
   consumer_session: consumerSessionAuditResource,
   consumer_device: consumerDeviceAuditResource,
+  consumer_device_settings: consumerDeviceSettingsAuditResource,
+  ai_tool_policy: aiToolPolicyAuditResource,
   consumer_access: consumerAccessAuditResource,
   consumer_access_listing: consumerAccessListingAuditResource,
   consumer_access_request: consumerAccessRequestAuditResource,

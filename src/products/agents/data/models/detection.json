@@ -1,0 +1,1111 @@
+{
+  "schema": 1,
+  "version": "6094a03ea4d87902",
+  "tools": [
+    {
+      "key": "aider",
+      "name": "Aider",
+      "description": "Open-source AI pair programming in the terminal.",
+      "maker": {
+        "id": "aider-ai",
+        "name": "Aider"
+      },
+      "website": "https://aider.chat",
+      "surfaces": [
+        "cli"
+      ],
+      "ide_extension_ids": [],
+      "platforms": {
+        "macos": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [
+            "aider"
+          ],
+          "process_names": []
+        },
+        "windows": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [
+            "aider"
+          ],
+          "process_names": []
+        },
+        "linux": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [
+            "aider"
+          ],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "amp",
+      "name": "Amp",
+      "description": "Coding agent for the terminal and editors.",
+      "maker": {
+        "id": "sourcegraph",
+        "name": "Sourcegraph"
+      },
+      "website": "https://ampcode.com",
+      "surfaces": [
+        "cli",
+        "ide-extension"
+      ],
+      "ide_extension_ids": [
+        "sourcegraph.amp"
+      ],
+      "platforms": {
+        "macos": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        },
+        "windows": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        },
+        "linux": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "antigravity",
+      "name": "Antigravity",
+      "description": "Google's agent manager app, CLI and IDE.",
+      "maker": {
+        "id": "google",
+        "name": "Google"
+      },
+      "website": "https://antigravity.google",
+      "surfaces": [
+        "cli",
+        "desktop",
+        "ide",
+        "ide-extension"
+      ],
+      "ide_extension_ids": [],
+      "platforms": {
+        "macos": {
+          "config_dirs": [
+            "~/.gemini/antigravity"
+          ],
+          "apps": [
+            "Antigravity.app"
+          ],
+          "binaries": [],
+          "process_names": [
+            "Antigravity"
+          ]
+        },
+        "windows": {
+          "config_dirs": [
+            "~/.gemini/antigravity"
+          ],
+          "apps": [
+            "%LOCALAPPDATA%/Programs/Antigravity"
+          ],
+          "binaries": [],
+          "process_names": [
+            "Antigravity.exe"
+          ]
+        },
+        "linux": {
+          "config_dirs": [
+            "~/.gemini/antigravity"
+          ],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "augment",
+      "name": "Augment Code",
+      "description": "Coding agent for IDEs and the Auggie CLI.",
+      "maker": {
+        "id": "augment",
+        "name": "Augment Code"
+      },
+      "website": "https://www.augmentcode.com",
+      "surfaces": [
+        "cli",
+        "ide-extension"
+      ],
+      "ide_extension_ids": [
+        "augment.vscode-augment"
+      ],
+      "platforms": {
+        "macos": {
+          "config_dirs": [
+            "~/.augment"
+          ],
+          "apps": [],
+          "binaries": [
+            "auggie"
+          ],
+          "process_names": []
+        },
+        "windows": {
+          "config_dirs": [
+            "~/.augment"
+          ],
+          "apps": [],
+          "binaries": [
+            "auggie"
+          ],
+          "process_names": []
+        },
+        "linux": {
+          "config_dirs": [
+            "~/.augment"
+          ],
+          "apps": [],
+          "binaries": [
+            "auggie"
+          ],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "chatgpt",
+      "name": "ChatGPT",
+      "description": "OpenAI's ChatGPT assistant on the desktop and the web.",
+      "maker": {
+        "id": "openai",
+        "name": "OpenAI"
+      },
+      "website": "https://chatgpt.com",
+      "surfaces": [
+        "desktop",
+        "web"
+      ],
+      "ide_extension_ids": [],
+      "platforms": {
+        "macos": {
+          "config_dirs": [
+            "~/Library/Application Support/com.openai.chat"
+          ],
+          "apps": [
+            "ChatGPT.app"
+          ],
+          "binaries": [],
+          "process_names": [
+            "ChatGPT"
+          ]
+        },
+        "windows": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [],
+          "process_names": [
+            "ChatGPT.exe"
+          ]
+        },
+        "linux": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "claude-code",
+      "name": "Claude Code",
+      "description": "Anthropic's coding agent for the terminal, IDEs, desktop and web.",
+      "maker": {
+        "id": "anthropic",
+        "name": "Anthropic"
+      },
+      "website": "https://claude.com/product/claude-code",
+      "surfaces": [
+        "cli",
+        "desktop",
+        "ide-extension",
+        "web"
+      ],
+      "ide_extension_ids": [
+        "anthropic.claude-code"
+      ],
+      "platforms": {
+        "macos": {
+          "config_dirs": [
+            "~/.claude"
+          ],
+          "apps": [],
+          "binaries": [
+            "claude"
+          ],
+          "process_names": []
+        },
+        "windows": {
+          "config_dirs": [
+            "~/.claude"
+          ],
+          "apps": [],
+          "binaries": [
+            "claude"
+          ],
+          "process_names": []
+        },
+        "linux": {
+          "config_dirs": [
+            "~/.claude"
+          ],
+          "apps": [],
+          "binaries": [
+            "claude"
+          ],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "claude-desktop",
+      "name": "Claude Desktop",
+      "description": "Anthropic's Claude chat app for macOS and Windows.",
+      "maker": {
+        "id": "anthropic",
+        "name": "Anthropic"
+      },
+      "website": "https://claude.ai/download",
+      "surfaces": [
+        "desktop"
+      ],
+      "ide_extension_ids": [],
+      "platforms": {
+        "macos": {
+          "config_dirs": [
+            "~/Library/Application Support/Claude"
+          ],
+          "apps": [
+            "Claude.app"
+          ],
+          "binaries": [],
+          "process_names": [
+            "Claude"
+          ]
+        },
+        "windows": {
+          "config_dirs": [
+            "%APPDATA%/Claude"
+          ],
+          "apps": [
+            "%LOCALAPPDATA%/AnthropicClaude"
+          ],
+          "binaries": [],
+          "process_names": []
+        },
+        "linux": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "cline",
+      "name": "Cline",
+      "description": "Open-source coding agent for VS Code, JetBrains and the terminal.",
+      "maker": {
+        "id": "cline",
+        "name": "Cline"
+      },
+      "website": "https://cline.bot",
+      "surfaces": [
+        "cli",
+        "ide-extension"
+      ],
+      "ide_extension_ids": [
+        "saoudrizwan.claude-dev"
+      ],
+      "platforms": {
+        "macos": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        },
+        "windows": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        },
+        "linux": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "codex",
+      "name": "Codex",
+      "description": "OpenAI's coding agent for the terminal, IDEs, the desktop app and the cloud.",
+      "maker": {
+        "id": "openai",
+        "name": "OpenAI"
+      },
+      "website": "https://openai.com/codex",
+      "surfaces": [
+        "cli",
+        "cloud",
+        "desktop",
+        "ide-extension"
+      ],
+      "ide_extension_ids": [
+        "openai.chatgpt"
+      ],
+      "platforms": {
+        "macos": {
+          "config_dirs": [
+            "~/.codex"
+          ],
+          "apps": [],
+          "binaries": [
+            "codex"
+          ],
+          "process_names": [
+            "codex"
+          ]
+        },
+        "windows": {
+          "config_dirs": [
+            "~/.codex"
+          ],
+          "apps": [],
+          "binaries": [
+            "codex"
+          ],
+          "process_names": [
+            "codex.exe"
+          ]
+        },
+        "linux": {
+          "config_dirs": [
+            "~/.codex"
+          ],
+          "apps": [],
+          "binaries": [
+            "codex"
+          ],
+          "process_names": [
+            "codex"
+          ]
+        }
+      }
+    },
+    {
+      "key": "continue",
+      "name": "Continue",
+      "description": "Open-source coding agent for IDEs and the terminal.",
+      "maker": {
+        "id": "continue",
+        "name": "Continue"
+      },
+      "website": "https://continue.dev",
+      "surfaces": [
+        "cli",
+        "ide-extension"
+      ],
+      "ide_extension_ids": [
+        "continue.continue"
+      ],
+      "platforms": {
+        "macos": {
+          "config_dirs": [
+            "~/.continue"
+          ],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        },
+        "windows": {
+          "config_dirs": [
+            "~/.continue"
+          ],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        },
+        "linux": {
+          "config_dirs": [
+            "~/.continue"
+          ],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "crush",
+      "name": "Crush",
+      "description": "Charm's coding agent for the terminal.",
+      "maker": {
+        "id": "charm",
+        "name": "Charm"
+      },
+      "website": null,
+      "surfaces": [
+        "cli"
+      ],
+      "ide_extension_ids": [],
+      "platforms": {
+        "macos": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [
+            "crush"
+          ],
+          "process_names": []
+        },
+        "windows": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [
+            "crush"
+          ],
+          "process_names": []
+        },
+        "linux": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [
+            "crush"
+          ],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "cursor",
+      "name": "Cursor",
+      "description": "AI code editor with an agent, a CLI and cloud agents.",
+      "maker": {
+        "id": "anysphere",
+        "name": "Anysphere"
+      },
+      "website": "https://cursor.com",
+      "surfaces": [
+        "cli",
+        "cloud",
+        "ide"
+      ],
+      "ide_extension_ids": [],
+      "platforms": {
+        "macos": {
+          "config_dirs": [
+            "~/.cursor"
+          ],
+          "apps": [
+            "Cursor.app"
+          ],
+          "binaries": [
+            "cursor-agent"
+          ],
+          "process_names": [
+            "Cursor"
+          ]
+        },
+        "windows": {
+          "config_dirs": [
+            "~/.cursor"
+          ],
+          "apps": [
+            "%LOCALAPPDATA%/Programs/cursor"
+          ],
+          "binaries": [],
+          "process_names": [
+            "Cursor.exe"
+          ]
+        },
+        "linux": {
+          "config_dirs": [
+            "~/.cursor"
+          ],
+          "apps": [],
+          "binaries": [
+            "cursor-agent"
+          ],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "devin-desktop",
+      "name": "Devin Desktop",
+      "description": "Cognition's agentic IDE, formerly Windsurf.",
+      "maker": {
+        "id": "cognition",
+        "name": "Cognition"
+      },
+      "website": "https://devin.ai",
+      "surfaces": [
+        "ide"
+      ],
+      "ide_extension_ids": [],
+      "platforms": {
+        "macos": {
+          "config_dirs": [
+            "~/.codeium/windsurf"
+          ],
+          "apps": [
+            "Windsurf.app"
+          ],
+          "binaries": [
+            "windsurf"
+          ],
+          "process_names": [
+            "Windsurf"
+          ]
+        },
+        "windows": {
+          "config_dirs": [
+            "~/.codeium/windsurf"
+          ],
+          "apps": [
+            "%LOCALAPPDATA%/Programs/Windsurf"
+          ],
+          "binaries": [],
+          "process_names": [
+            "Windsurf.exe"
+          ]
+        },
+        "linux": {
+          "config_dirs": [
+            "~/.codeium/windsurf"
+          ],
+          "apps": [],
+          "binaries": [
+            "windsurf"
+          ],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "gemini-cli",
+      "name": "Gemini CLI",
+      "description": "Google's open-source coding agent for the terminal.",
+      "maker": {
+        "id": "google",
+        "name": "Google"
+      },
+      "website": "https://geminicli.com",
+      "surfaces": [
+        "cli"
+      ],
+      "ide_extension_ids": [],
+      "platforms": {
+        "macos": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [
+            "gemini"
+          ],
+          "process_names": []
+        },
+        "windows": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [
+            "gemini"
+          ],
+          "process_names": []
+        },
+        "linux": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [
+            "gemini"
+          ],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "github-copilot",
+      "name": "GitHub Copilot",
+      "description": "GitHub's coding assistant and agent in IDEs, the terminal and GitHub's cloud.",
+      "maker": {
+        "id": "github",
+        "name": "GitHub"
+      },
+      "website": "https://github.com/features/copilot",
+      "surfaces": [
+        "cli",
+        "cloud",
+        "ide-extension"
+      ],
+      "ide_extension_ids": [
+        "github.copilot",
+        "github.copilot-chat"
+      ],
+      "platforms": {
+        "macos": {
+          "config_dirs": [
+            "~/.copilot"
+          ],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        },
+        "windows": {
+          "config_dirs": [
+            "~/.copilot"
+          ],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        },
+        "linux": {
+          "config_dirs": [
+            "~/.copilot"
+          ],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "goose",
+      "name": "Goose",
+      "description": "Open-source on-machine agent for the terminal and desktop.",
+      "maker": {
+        "id": "block",
+        "name": "Block"
+      },
+      "website": "https://block.github.io/goose",
+      "surfaces": [
+        "cli",
+        "desktop"
+      ],
+      "ide_extension_ids": [],
+      "platforms": {
+        "macos": {
+          "config_dirs": [
+            "~/.config/goose"
+          ],
+          "apps": [
+            "Goose.app"
+          ],
+          "binaries": [],
+          "process_names": []
+        },
+        "windows": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        },
+        "linux": {
+          "config_dirs": [
+            "~/.config/goose"
+          ],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "kilo-code",
+      "name": "Kilo Code",
+      "description": "Open-source coding agent for VS Code, JetBrains and the terminal.",
+      "maker": {
+        "id": "kilo",
+        "name": "Kilo Code"
+      },
+      "website": "https://kilo.ai",
+      "surfaces": [
+        "cli",
+        "ide-extension"
+      ],
+      "ide_extension_ids": [
+        "kilocode.kilo-code"
+      ],
+      "platforms": {
+        "macos": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        },
+        "windows": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        },
+        "linux": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "kiro",
+      "name": "Kiro",
+      "description": "AWS's agentic IDE and CLI, the successor of Amazon Q Developer CLI.",
+      "maker": {
+        "id": "amazon",
+        "name": "Amazon"
+      },
+      "website": "https://kiro.dev",
+      "surfaces": [
+        "cli",
+        "ide",
+        "web"
+      ],
+      "ide_extension_ids": [],
+      "platforms": {
+        "macos": {
+          "config_dirs": [
+            "~/.kiro"
+          ],
+          "apps": [
+            "Kiro.app"
+          ],
+          "binaries": [
+            "kiro-cli"
+          ],
+          "process_names": [
+            "Kiro"
+          ]
+        },
+        "windows": {
+          "config_dirs": [
+            "~/.kiro"
+          ],
+          "apps": [
+            "%LOCALAPPDATA%/Programs/Kiro"
+          ],
+          "binaries": [],
+          "process_names": [
+            "Kiro.exe"
+          ]
+        },
+        "linux": {
+          "config_dirs": [
+            "~/.kiro"
+          ],
+          "apps": [],
+          "binaries": [
+            "kiro-cli"
+          ],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "lm-studio",
+      "name": "LM Studio",
+      "description": "Desktop app and CLI for running open-weight models on the local machine.",
+      "maker": {
+        "id": "lmstudio",
+        "name": "LM Studio"
+      },
+      "website": "https://lmstudio.ai",
+      "surfaces": [
+        "cli",
+        "desktop"
+      ],
+      "ide_extension_ids": [],
+      "platforms": {
+        "macos": {
+          "config_dirs": [
+            "~/.cache/lm-studio",
+            "~/.lmstudio"
+          ],
+          "apps": [
+            "LM Studio.app"
+          ],
+          "binaries": [],
+          "process_names": [
+            "LM Studio"
+          ]
+        },
+        "windows": {
+          "config_dirs": [
+            "~/.cache/lm-studio",
+            "~/.lmstudio"
+          ],
+          "apps": [
+            "%LOCALAPPDATA%/Programs/LM Studio"
+          ],
+          "binaries": [],
+          "process_names": [
+            "LM Studio.exe"
+          ]
+        },
+        "linux": {
+          "config_dirs": [
+            "~/.cache/lm-studio",
+            "~/.lmstudio"
+          ],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "ollama",
+      "name": "Ollama",
+      "description": "Runs open-weight models on the local machine, with a desktop app and a CLI.",
+      "maker": {
+        "id": "ollama",
+        "name": "Ollama"
+      },
+      "website": "https://ollama.com",
+      "surfaces": [
+        "cli",
+        "desktop"
+      ],
+      "ide_extension_ids": [],
+      "platforms": {
+        "macos": {
+          "config_dirs": [
+            "~/.ollama"
+          ],
+          "apps": [
+            "Ollama.app"
+          ],
+          "binaries": [
+            "ollama"
+          ],
+          "process_names": [
+            "ollama"
+          ]
+        },
+        "windows": {
+          "config_dirs": [
+            "~/.ollama"
+          ],
+          "apps": [
+            "%LOCALAPPDATA%/Programs/Ollama"
+          ],
+          "binaries": [
+            "ollama"
+          ],
+          "process_names": [
+            "ollama app.exe",
+            "ollama.exe"
+          ]
+        },
+        "linux": {
+          "config_dirs": [
+            "~/.ollama"
+          ],
+          "apps": [],
+          "binaries": [
+            "ollama"
+          ],
+          "process_names": [
+            "ollama"
+          ]
+        }
+      }
+    },
+    {
+      "key": "opencode",
+      "name": "opencode",
+      "description": "Open-source coding agent for the terminal that works with any provider.",
+      "maker": {
+        "id": "opencode",
+        "name": "OpenCode"
+      },
+      "website": "https://opencode.ai",
+      "surfaces": [
+        "cli"
+      ],
+      "ide_extension_ids": [],
+      "platforms": {
+        "macos": {
+          "config_dirs": [
+            "~/.config/opencode"
+          ],
+          "apps": [],
+          "binaries": [
+            "opencode"
+          ],
+          "process_names": [
+            "opencode"
+          ]
+        },
+        "windows": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [
+            "opencode"
+          ],
+          "process_names": [
+            "opencode.exe"
+          ]
+        },
+        "linux": {
+          "config_dirs": [
+            "~/.config/opencode"
+          ],
+          "apps": [],
+          "binaries": [
+            "opencode"
+          ],
+          "process_names": [
+            "opencode"
+          ]
+        }
+      }
+    },
+    {
+      "key": "perplexity",
+      "name": "Perplexity",
+      "description": "Perplexity's AI answer engine on the desktop and the web.",
+      "maker": {
+        "id": "perplexity",
+        "name": "Perplexity"
+      },
+      "website": "https://www.perplexity.ai",
+      "surfaces": [
+        "desktop",
+        "web"
+      ],
+      "ide_extension_ids": [],
+      "platforms": {
+        "macos": {
+          "config_dirs": [],
+          "apps": [
+            "Perplexity.app"
+          ],
+          "binaries": [],
+          "process_names": [
+            "Perplexity"
+          ]
+        },
+        "windows": {
+          "config_dirs": [],
+          "apps": [
+            "%LOCALAPPDATA%/Programs/Perplexity"
+          ],
+          "binaries": [],
+          "process_names": [
+            "Perplexity.exe"
+          ]
+        },
+        "linux": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "qwen-code",
+      "name": "Qwen Code",
+      "description": "Alibaba's coding agent for the terminal, forked from Gemini CLI.",
+      "maker": {
+        "id": "alibaba",
+        "name": "Alibaba"
+      },
+      "website": null,
+      "surfaces": [
+        "cli"
+      ],
+      "ide_extension_ids": [],
+      "platforms": {
+        "macos": {
+          "config_dirs": [
+            "~/.qwen"
+          ],
+          "apps": [],
+          "binaries": [
+            "qwen"
+          ],
+          "process_names": []
+        },
+        "windows": {
+          "config_dirs": [
+            "~/.qwen"
+          ],
+          "apps": [],
+          "binaries": [
+            "qwen"
+          ],
+          "process_names": []
+        },
+        "linux": {
+          "config_dirs": [
+            "~/.qwen"
+          ],
+          "apps": [],
+          "binaries": [
+            "qwen"
+          ],
+          "process_names": []
+        }
+      }
+    },
+    {
+      "key": "warp",
+      "name": "Warp",
+      "description": "Agentic terminal with local and cloud agents.",
+      "maker": {
+        "id": "warp",
+        "name": "Warp"
+      },
+      "website": "https://www.warp.dev",
+      "surfaces": [
+        "cloud",
+        "desktop"
+      ],
+      "ide_extension_ids": [],
+      "platforms": {
+        "macos": {
+          "config_dirs": [
+            "~/.warp"
+          ],
+          "apps": [
+            "Warp.app"
+          ],
+          "binaries": [],
+          "process_names": []
+        },
+        "windows": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [],
+          "process_names": []
+        },
+        "linux": {
+          "config_dirs": [],
+          "apps": [],
+          "binaries": [
+            "warp-terminal"
+          ],
+          "process_names": []
+        }
+      }
+    }
+  ]
+}

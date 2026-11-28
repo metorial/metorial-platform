@@ -2,9 +2,9 @@ import type { RecordDraft } from '@mtsrc/agent-tracking-records-model';
 import { genAiBilling } from '../billing';
 import { readFields, withCoerced, type FieldReader } from '../fields';
 import { measurementDraft } from '../measure';
-import { classifyTool } from '../tools';
+import { classifyTool, isMcpTool, redactedMcpTool } from '../tools';
 import { dateFromNanos } from '../time';
-import type { Mapped, OtlpDialect, OtlpGroupContext } from '../types';
+import type { Mapped, OtlpDialect, OtlpGroupContext, OtlpItemView } from '../types';
 import {
   buildUsage,
   errorFromStatus,
@@ -25,6 +25,14 @@ let spanPattern =
 
 let modelOperations = new Set(['chat', 'text_completion', 'generate_content']);
 
+let serviceFamilies: Record<string, string> = {
+  opencode: 'opencode',
+  'github-copilot': 'copilot',
+  'copilot-chat': 'copilot'
+};
+
+let toolSpanPattern = /^execute_tool (.+)$/;
+
 let tokenTypes: Record<string, { type: string; warning?: string }> = {
   input: { type: 'input', warning: 'token_type_includes_cache' },
   output: { type: 'output', warning: 'token_type_includes_reasoning' }
@@ -41,7 +49,9 @@ let withData = (draft: RecordDraft, data: Record<string, unknown>): RecordDraft 
 let clientOf = (context: OtlpGroupContext, fields: FieldReader): RecordDraft['client'] => {
   let version = clientVersionOf(context.resourceFields, fields);
 
-  return { family: 'generic', ...(version ? { version } : {}) };
+  let family = own(serviceFamilies, context.serviceName?.trim().toLowerCase()) ?? 'generic';
+
+  return { family, ...(version ? { version } : {}) };
 };
 
 let providerOf = (fields: FieldReader) =>
@@ -282,6 +292,20 @@ let mapLog: OtlpDialect['mapLog'] = (context, log) => {
   ];
 };
 
+let genAiWithoutToolDetails = (item: OtlpItemView): OtlpItemView => {
+  let tool = isMcpTool({ name: item.attributes['gen_ai.tool.name'] });
+  let spanTool = isMcpTool({ name: toolSpanPattern.exec(item.name)?.[1] });
+
+  if (!tool && !spanTool) return item;
+
+  return {
+    name: spanTool ? `execute_tool ${redactedMcpTool}` : item.name,
+    attributes: tool
+      ? { ...item.attributes, 'gen_ai.tool.name': redactedMcpTool }
+      : item.attributes
+  };
+};
+
 export let genAiOtlp: OtlpDialect = {
   id: genAiOtlpId,
   adapter,
@@ -298,5 +322,7 @@ export let genAiOtlp: OtlpDialect = {
 
   mapLog,
   mapMetric,
-  mapSpan
+  mapSpan,
+
+  withoutToolDetails: genAiWithoutToolDetails
 };

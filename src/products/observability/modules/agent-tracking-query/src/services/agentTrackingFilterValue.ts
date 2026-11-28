@@ -7,13 +7,21 @@ import { invalidInputError } from '../lib/errors';
 import {
   filterValueItem,
   isFilterValueOf,
+  normalizeTicketKey,
   unknownNames,
   unknownOption
 } from '../lib/filterValues';
-import { lookupMembers, unique, unknownMemberKey } from '../lib/members';
+import { unique } from '../lib/entities';
+import { lookupMembers, unknownMemberKey } from '../lib/members';
 import { individualsHiddenError, loadPrivacy } from '../lib/privacy';
 import { filtersHiddenError, seatValuesHiddenError } from '../lib/privateSpend';
-import { assertRequestRange, filterFields, filterValuesLimit } from '../lib/queries';
+import { lookupProviders, type ProviderReadScope } from '../lib/providers';
+import {
+  assertRecordRange,
+  filterFields,
+  filterValueDatasets,
+  filterValuesLimit
+} from '../lib/queries';
 import {
   normalizeRange,
   queryRange,
@@ -22,23 +30,32 @@ import {
   type NormalizedRange,
   type RangeInput
 } from '../lib/range';
+import { lookupRepositories } from '../lib/repositories';
 import { cachedRead, type ReadScope } from '../lib/scope';
 import { fromService, queryCallOptions } from '../lib/service';
 import type {
   AgentTrackingFilterValue,
   AgentTrackingFilterValues,
   AgentTrackingMember,
+  AgentTrackingProvider,
+  AgentTrackingRepository,
   FilterField
 } from '../lib/types';
 
+let recordValueSubjects: Partial<Record<FilterField, string>> = {
+  seat: 'Seat values',
+  provider: 'Provider values'
+};
+
 class AgentTrackingFilterValueServiceImpl {
   async listFilterValues(
-    d: ReadScope & {
-      field: FilterField;
-      search?: string;
-      values?: string[];
-      range: RangeInput;
-    }
+    d: ReadScope &
+      ProviderReadScope & {
+        field: FilterField;
+        search?: string;
+        values?: string[];
+        range: RangeInput;
+      }
   ): Promise<AgentTrackingFilterValues> {
     let range = normalizeRange(d.range);
     let now = new Date();
@@ -59,18 +76,23 @@ class AgentTrackingFilterValueServiceImpl {
       );
     }
 
-    let fromRequests = d.field == 'seat';
-    if (fromRequests && !d.values) assertRequestRange(resolveRange(range, now), 'Seat values');
+    let recordSubject = recordValueSubjects[d.field];
+    if (recordSubject && !d.values) assertRecordRange(resolveRange(range, now), recordSubject);
 
     if (d.values) {
-      let values = unique(d.values);
+      let values = unique(d.field == 'ticket' ? d.values.map(normalizeTicketKey) : d.values);
       return await fromService(() => this.describeValues({ ...d, values, range, now }));
     }
 
     return await cachedRead({
       scope: d,
       read: 'filterValues.list',
-      input: { field: d.field, search, range: rangeCacheKey(range, now) },
+      input: {
+        field: d.field,
+        search,
+        range: rangeCacheKey(range, now),
+        ...(d.field == 'provider' ? { providerNames: !!d.canReadProviders } : {})
+      },
       load: async () => {
         let resolved = resolveRange(range, now);
         let agentTracking = requireAgentTracking();
@@ -79,7 +101,7 @@ class AgentTrackingFilterValueServiceImpl {
           {
             organizationId: d.organization.id,
             scope: { instanceIds: [d.instance.id] },
-            dataset: fromRequests ? 'requests' : 'usage',
+            dataset: filterValueDatasets[d.field] ?? 'usage',
             field: filterFields[d.field],
             search,
             range: queryRange(resolved),
@@ -92,14 +114,21 @@ class AgentTrackingFilterValueServiceImpl {
           (item): item is typeof item & { value: string } => typeof item.value == 'string'
         );
 
-        let members =
+        let [members, repositories, providers] = await Promise.all([
           d.field == 'member'
-            ? await lookupMembers({
+            ? lookupMembers({
                 scope: d,
                 ids: values.map(item => item.value),
                 names: new Map(values.map(item => [item.value, item.label?.name ?? null]))
               })
-            : new Map<string, AgentTrackingMember>();
+            : new Map<string, AgentTrackingMember>(),
+          d.field == 'repository'
+            ? lookupRepositories({ scope: d, ids: values.map(item => item.value) })
+            : new Map<string, AgentTrackingRepository>(),
+          d.field == 'provider'
+            ? lookupProviders({ scope: d, ids: values.map(item => item.value) })
+            : new Map<string, AgentTrackingProvider>()
+        ]);
 
         let items = values.map(item =>
           filterValueItem(
@@ -107,6 +136,8 @@ class AgentTrackingFilterValueServiceImpl {
             d.field == 'client' ? fromServiceFamily(item.value) : item.value,
             {
               member: members.get(item.value),
+              repository: repositories.get(item.value),
+              provider: providers.get(item.value),
               name: item.label?.name,
               requests: item.count
             }
@@ -129,12 +160,13 @@ class AgentTrackingFilterValueServiceImpl {
   }
 
   private async describeValues(
-    d: ReadScope & {
-      field: FilterField;
-      values: string[];
-      range: NormalizedRange;
-      now: Date;
-    }
+    d: ReadScope &
+      ProviderReadScope & {
+        field: FilterField;
+        values: string[];
+        range: NormalizedRange;
+        now: Date;
+      }
   ): Promise<AgentTrackingFilterValues> {
     let resolved = resolveRange(d.range, d.now);
     let withUnknown = !!unknownNames[d.field] && d.values.includes(unknownMemberKey);
@@ -164,18 +196,22 @@ class AgentTrackingFilterValueServiceImpl {
   }
 
   private async describeNamed(
-    d: ReadScope & { field: FilterField; values: string[] }
+    d: ReadScope & ProviderReadScope & { field: FilterField; values: string[] }
   ): Promise<AgentTrackingFilterValue[]> {
     if (!d.values.length) return [];
 
-    let [members, names] = await Promise.all([
+    let [members, names, repositories, providers] = await Promise.all([
       d.field == 'member' ? lookupMembers({ scope: d, ids: d.values }) : undefined,
-      d.field == 'model' ? lookupModelNames(d.values) : undefined
+      d.field == 'model' ? lookupModelNames(d.values) : undefined,
+      d.field == 'repository' ? lookupRepositories({ scope: d, ids: d.values }) : undefined,
+      d.field == 'provider' ? lookupProviders({ scope: d, ids: d.values }) : undefined
     ]);
 
     return d.values.map(value =>
       filterValueItem(d.field, value, {
         member: members?.get(value),
+        repository: repositories?.get(value),
+        provider: providers?.get(value),
         name: names?.get(value)
       })
     );

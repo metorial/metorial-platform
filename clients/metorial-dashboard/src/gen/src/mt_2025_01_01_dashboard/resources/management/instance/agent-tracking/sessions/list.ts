@@ -43,6 +43,37 @@ export type ManagementInstanceAgentTrackingSessionsListOutput = {
     };
     requests: number;
     summaryPending: boolean;
+    context: {
+      repositories: {
+        id: string;
+        provider: string | null;
+        host: string | null;
+        owner: string | null;
+        name: string | null;
+        url: string | null;
+      }[];
+      branch: string | null;
+      defaultBranch: string | null;
+      head: string | null;
+      worktree: boolean | null;
+      subPath: string | null;
+      permissionMode: string | null;
+      title: string | null;
+      tickets: { key: string; url: string | null }[];
+      pullRequests: {
+        key: string;
+        provider: string;
+        host: string | null;
+        repository: string;
+        number: number;
+        kind: 'opened' | 'linked';
+        url: string | null;
+      }[];
+      commitCount: number;
+      pullRequestCount: number;
+      lines: { added: number; removed: number };
+    };
+    providers: { id: string; name: string | null }[];
     startedAt: Date;
     lastActivityAt: Date;
     endedAt: Date | null;
@@ -77,6 +108,21 @@ export let mapManagementInstanceAgentTrackingSessionsListOutput =
           ],
           ['tokens', 0, [1, ['cache_read', 'cache_write']]],
           'summary_pending',
+          [
+            'context',
+            0,
+            [
+              1,
+              [
+                'default_branch',
+                'sub_path',
+                'permission_mode',
+                'pull_requests',
+                'commit_count',
+                'pull_request_count'
+              ]
+            ]
+          ],
           'started_at',
           'last_activity_at',
           'ended_at'
@@ -96,6 +142,11 @@ export type ManagementInstanceAgentTrackingSessionsListQuery = {
   memberId?: string | string[] | undefined;
   modelId?: string | string[] | undefined;
   clientFamily?: string | string[] | undefined;
+  repositoryId?: string | string[] | undefined;
+  branch?: string | string[] | undefined;
+  ticket?: string | string[] | undefined;
+  pullRequest?: string | string[] | undefined;
+  providerId?: string | string[] | undefined;
   orderBy?: 'last_activity' | 'cost' | undefined;
   range?:
     'today' | 'last_7_days' | 'last_30_days' | 'month_to_date' | 'last_month' | undefined;
@@ -116,6 +167,9 @@ export let mapManagementInstanceAgentTrackingSessionsListQuery =
             'member_id',
             'model_id',
             'client_family',
+            'repository_id',
+            'pull_request',
+            'provider_id',
             'order_by',
             ['from', 0, 4],
             ['to', 0, 4],

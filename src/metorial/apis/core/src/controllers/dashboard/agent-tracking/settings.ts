@@ -2,9 +2,14 @@ import { v } from '@lowerdeck/validation';
 import {
   agentTrackingContentModes,
   agentTrackingSettingsService,
+  defaultHistoryImportDays,
+  historyImportDaysLimits,
   minGroupUsersLimits,
   retentionDaysLimits,
-  serviceRetentionDefaults
+  serviceRetentionDefaults,
+  ticketUrlTemplate,
+  ticketUrlTemplateKey,
+  ticketUrlTemplateMaxLength
 } from '@metorial/module-agent-tracking-sync';
 import { projectService } from '@metorial/module-organization';
 import {
@@ -61,7 +66,8 @@ let retentionDays = (name: string, description: string) =>
 export let dashboardAgentTrackingOrganizationSettingsController = Controller.create(
   {
     name: 'Agent Tracking Organization Settings',
-    description: 'The privacy settings of agent tracking, for the whole organization.',
+    description:
+      'The privacy, Metorial Desktop and link settings of agent tracking, for the whole organization.',
     hideInDocs: true
   },
   {
@@ -70,7 +76,8 @@ export let dashboardAgentTrackingOrganizationSettingsController = Controller.cre
         Path(organizationSettingsPath, 'dashboard.organizations.configure.agentTracking.get'),
         {
           name: 'Get agent tracking organization settings',
-          description: 'Returns the privacy settings of agent tracking for the organization.',
+          description:
+            'Returns the privacy, Metorial Desktop and link settings of agent tracking for the organization.',
           hideInDocs: true
         }
       )
@@ -93,7 +100,7 @@ export let dashboardAgentTrackingOrganizationSettingsController = Controller.cre
         {
           name: 'Update agent tracking organization settings',
           description:
-            'Changes the privacy settings of the organization; leaving a field out keeps its value. Applies to the next request. service_status says whether agent tracking has taken the change yet.',
+            'Changes the privacy, Metorial Desktop and link settings of the organization; leaving a field out keeps its value. Applies to the next request. service_status says whether agent tracking has taken the change yet.',
           hideInDocs: true
         }
       )
@@ -101,29 +108,99 @@ export let dashboardAgentTrackingOrganizationSettingsController = Controller.cre
       .body(
         'default',
         v.object({
-          privacy: v.object(
-            {
-              hide_individuals: v.optional(
-                v.boolean({
-                  name: 'hide_individuals',
-                  description:
-                    'Show agent usage only in aggregate, never per member or per session.'
-                })
-              ),
-              min_group_users: v.optional(
-                v.number({
-                  name: 'min_group_users',
-                  description: `With hide_individuals, the fewest people a group must have to be shown. From ${minGroupUsersLimits.min} to ${minGroupUsersLimits.max}.`,
-                  examples: [5],
-                  modifiers: [
-                    v.integer(),
-                    v.minValue(minGroupUsersLimits.min),
-                    v.maxValue(minGroupUsersLimits.max)
-                  ]
-                })
-              )
-            },
-            { name: 'privacy', description: 'Organization-wide privacy settings.' }
+          privacy: v.optional(
+            v.object(
+              {
+                hide_individuals: v.optional(
+                  v.boolean({
+                    name: 'hide_individuals',
+                    description:
+                      'Show agent usage only in aggregate, never per member or per session.'
+                  })
+                ),
+                min_group_users: v.optional(
+                  v.number({
+                    name: 'min_group_users',
+                    description: `With hide_individuals, the fewest people a group must have to be shown. From ${minGroupUsersLimits.min} to ${minGroupUsersLimits.max}.`,
+                    examples: [5],
+                    modifiers: [
+                      v.integer(),
+                      v.minValue(minGroupUsersLimits.min),
+                      v.maxValue(minGroupUsersLimits.max)
+                    ]
+                  })
+                )
+              },
+              { name: 'privacy', description: 'Organization-wide privacy settings.' }
+            )
+          ),
+          desktop: v.optional(
+            v.object(
+              {
+                tool_details: v.optional(
+                  v.boolean({
+                    name: 'tool_details',
+                    description:
+                      'Has Metorial Desktop turn on detailed tool reporting in the AI tools it sets up: tool inputs, file paths and commands, which carry the names of skills and MCP servers, are sent.'
+                  })
+                ),
+                session_context: v.optional(
+                  v.boolean({
+                    name: 'session_context',
+                    description:
+                      'Has Metorial Desktop report the repository, branch, commits, pull requests and ticket keys of each agent session. Folder paths, commit messages and code are never sent.'
+                  })
+                ),
+                session_titles: v.optional(
+                  v.boolean({
+                    name: 'session_titles',
+                    description:
+                      'Has Metorial Desktop report session titles. The AI tools write them from what was typed, so they can contain details of the work.'
+                  })
+                ),
+                history_import: v.optional(
+                  v.boolean({
+                    name: 'history_import',
+                    description:
+                      'Has Metorial Desktop import agent sessions from before it was installed, from the session files the AI tools keep on each device.'
+                  })
+                ),
+                history_import_days: v.optional(
+                  v.number({
+                    name: 'history_import_days',
+                    description: `How many days back history import goes, from ${historyImportDaysLimits.min} to ${historyImportDaysLimits.max}. Records older than a project's record retention are refused.`,
+                    examples: [defaultHistoryImportDays],
+                    modifiers: [
+                      v.integer(),
+                      v.minValue(historyImportDaysLimits.min),
+                      v.maxValue(historyImportDaysLimits.max)
+                    ]
+                  })
+                )
+              },
+              {
+                name: 'desktop',
+                description:
+                  "What the AI tools Metorial Desktop sets up on members' computers report."
+              }
+            )
+          ),
+          links: v.optional(
+            v.object(
+              {
+                ticket_url_template: v.optional(
+                  v.nullable(
+                    v.string({
+                      name: 'ticket_url_template',
+                      description: `URL that ticket keys link to, with \`${ticketUrlTemplateKey}\` where the key goes in its path or query. An http or https URL of at most ${ticketUrlTemplateMaxLength} characters. \`null\` or an empty string removes the links.`,
+                      examples: ['https://linear.app/acme/issue/{key}'],
+                      modifiers: [ticketUrlTemplate]
+                    })
+                  )
+                )
+              },
+              { name: 'links', description: 'Where agent usage links out to.' }
+            )
           )
         })
       )
@@ -134,9 +211,19 @@ export let dashboardAgentTrackingOrganizationSettingsController = Controller.cre
             organization: ctx.organization,
             auditScope: ctx.auditScope,
             input: {
-              privacy: {
+              privacy: ctx.body.privacy && {
                 hideIndividuals: ctx.body.privacy.hide_individuals,
                 minGroupUsers: ctx.body.privacy.min_group_users
+              },
+              desktop: ctx.body.desktop && {
+                toolDetails: ctx.body.desktop.tool_details,
+                sessionContext: ctx.body.desktop.session_context,
+                sessionTitles: ctx.body.desktop.session_titles,
+                historyImport: ctx.body.desktop.history_import,
+                historyImportDays: ctx.body.desktop.history_import_days
+              },
+              links: ctx.body.links && {
+                ticketUrlTemplate: ctx.body.links.ticket_url_template
               }
             }
           })

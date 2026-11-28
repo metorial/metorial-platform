@@ -2,7 +2,10 @@ import { v } from '@lowerdeck/validation';
 import type {
   AgentTrackingCost,
   AgentTrackingMember,
+  AgentTrackingProvider,
+  AgentTrackingRepository,
   AgentTrackingSpendCost,
+  AgentTrackingTicket,
   AgentTrackingTokens
 } from '@metorial/module-agent-tracking-query';
 
@@ -20,7 +23,7 @@ export let agentTrackingCostSchema = v.object(
     currency: v.literal('usd', { description: 'The currency of every amount. Always usd.' }),
     total_micros: agentTrackingNullableMicrosSchema(
       'total_micros',
-      "The best figure for the cost. Agent tracking picks one basis per session: billed where a provider bill exists, else contract prices where a price override applies, else the agent's own estimate, else list prices computed by Metorial. It covers only the requests with a known cost (see requests_without_cost on spend figures). On spend figures: 0 when there were no requests, null when there were requests and none had a known cost. On a session: null while none of its requests has a known cost. On a member: null when none of the counted sessions has a known cost; it covers only the sessions with one."
+      "The best figure for the cost. Agent tracking picks one basis per session: billed where a provider bill exists, else contract prices where a price override applies, else the agent's own estimate, else list prices computed by Metorial. It covers only the requests with a known cost (see requests_without_cost on spend figures). On spend figures: 0 when there was no usage, null when there was usage and none of it had a known cost. On a session: null while none of its requests has a known cost. On a member: null when none of the counted sessions has a known cost; it covers only the sessions with one."
     ),
     billed_micros: agentTrackingNullableMicrosSchema(
       'billed_micros',
@@ -41,7 +44,7 @@ export let agentTrackingCostSchema = v.object(
     ),
     list_price_micros: agentTrackingNullableMicrosSchema(
       'list_price_micros',
-      'The usage covered here, priced by Metorial at list prices whatever basis total_micros uses. A comparison figure, not a part of total_micros. It covers only the requests whose model has a list price (see requests_without_list_price on spend figures), so it can cover less usage than total_micros or reported_by_client_micros. On spend figures: 0 when there were no requests, null when there were requests and none had a list price. On a session: null while none of its requests has a list price. On a member: null when none of the counted sessions has a list price; it covers only the sessions with one.'
+      'The usage covered here, priced by Metorial at list prices whatever basis total_micros uses. A comparison figure, not a part of total_micros. It covers only the requests whose model has a list price (see requests_without_list_price on spend figures), so it can cover less usage than total_micros or reported_by_client_micros. On spend figures: 0 when there was no usage, null when there was usage and none of it had a list price. On a session: null while none of its requests has a list price. On a member: null when none of the counted sessions has a list price; it covers only the sessions with one.'
     )
   },
   {
@@ -57,7 +60,7 @@ export let agentTrackingSpendCostSchema = v.intersection([
     requests_without_cost: v.number({
       name: 'requests_without_cost',
       description:
-        'Model requests whose cost is not known: neither the agent nor the price list gave one. Counted per usage slice (the requests of one session to one model in 15 minutes), so requests in a slice that has any cost count as priced. When above 0, total_micros covers only the other requests.'
+        'Model requests whose cost is not known: neither the agent nor the price list gave one. Counted per usage slice (the requests of one session to one model in 15 minutes), so requests in a slice that has any cost count as priced. When above 0, total_micros covers only the other requests. Usage an agent reports per turn, as Cursor does, has tokens but no requests, so it is not counted here.'
     }),
     requests_without_list_price: v.number({
       name: 'requests_without_list_price',
@@ -230,6 +233,118 @@ export let agentTrackingClientSchema = v.object(
   },
   { name: 'client', description: 'The AI coding agent, on a `client` value or item.' }
 );
+
+export let agentTrackingRepositorySchema = v.object(
+  {
+    id: v.string({
+      name: 'id',
+      description: 'Unique ID.',
+      examples: ['aten_0mhNnEqM7XQb3vXq8gD2']
+    }),
+    provider: v.nullable(
+      v.string({
+        name: 'provider',
+        description:
+          'The Git provider or host as recorded for the remote. `null` when the repository is not known.',
+        examples: ['github.com']
+      })
+    ),
+    host: v.nullable(
+      v.string({
+        name: 'host',
+        description:
+          'The host name the repository lives on. Show it with the name unless it is `github.com`, `gitlab.com` or `bitbucket.org`. `null` when it is not a valid host name.',
+        examples: ['github.com', 'git.acme.io']
+      })
+    ),
+    owner: v.nullable(
+      v.string({
+        name: 'owner',
+        description:
+          'The account, organization or group path that holds the repository. `null` when the repository is not known.',
+        examples: ['acme']
+      })
+    ),
+    name: v.nullable(
+      v.string({
+        name: 'name',
+        description:
+          'The repository name without its owner. `null` when the repository is not known.',
+        examples: ['api']
+      })
+    ),
+    url: v.nullable(
+      v.string({
+        name: 'url',
+        description:
+          'The https address of the repository, built from its host, owner and name. `null` when they do not form a valid address, and for IP address and internationalized hosts.',
+        examples: ['https://github.com/acme/api']
+      })
+    )
+  },
+  { name: 'repository', description: 'A Git repository agent sessions ran in.' }
+);
+
+export let presentAgentTrackingRepository = (repository: AgentTrackingRepository) => ({
+  id: repository.id,
+  provider: repository.provider,
+  host: repository.host,
+  owner: repository.owner,
+  name: repository.name,
+  url: repository.url
+});
+
+export let agentTrackingProviderSchema = v.object(
+  {
+    id: v.string({
+      name: 'id',
+      description: 'Unique ID.',
+      examples: ['pro_0mhNnEqM7XQb3vXq8gD2']
+    }),
+    name: v.nullable(
+      v.string({
+        name: 'name',
+        description:
+          'Display name. `null` when the provider is not available to you, such as without the `instance.provider:read` scope.',
+        examples: ['Linear']
+      })
+    )
+  },
+  {
+    name: 'provider',
+    description: 'A Metorial provider that MCP tool calls of AI coding agents reached.'
+  }
+);
+
+export let presentAgentTrackingProvider = (provider: AgentTrackingProvider) => ({
+  id: provider.id,
+  name: provider.name
+});
+
+export let agentTrackingTicketSchema = v.object(
+  {
+    key: v.string({
+      name: 'key',
+      description:
+        'The ticket key found in the branch name or a commit message, or on a commit an issue number such as `#42`. Use a key as `ticket` in filters.',
+      examples: ['ENG-123', '#42']
+    }),
+    url: v.nullable(
+      v.string({
+        name: 'url',
+        description:
+          "The ticket link from the organization's template, or for an issue number the issue in the session's one GitHub or GitLab repository. `null` otherwise.",
+        examples: ['https://linear.app/acme/issue/ENG-123']
+      })
+    )
+  },
+  { name: 'ticket', description: 'A ticket an agent session worked on.' }
+);
+
+export let presentAgentTrackingTicket = (ticket: AgentTrackingTicket) => ({
+  key: ticket.key,
+  url: ticket.url
+});
 
 export let agentTrackingRangeSchema = v.object(
   {

@@ -2,16 +2,35 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { agentTrackingTokenService } from '@metorial/module-agent-tracking-access';
-import type { Organization, Project } from '@metorial/db';
-import { consumerDeviceService, consumerDeviceStatuses } from '@metorial/module-consumer-core';
-import { flagService } from '@metorial/module-flags';
 import {
+  ConsumerDeviceDetectionConfidence,
+  ConsumerDeviceDetectionSignalKind,
+  ConsumerDeviceDetectionState,
+  type Instance,
+  type Organization,
+  type Project
+} from '@metorial/db';
+import {
+  consumerDeviceDetectionService,
+  consumerDeviceService,
+  consumerDeviceSettingsService,
+  consumerDeviceStatuses,
+  maxDetectionFindings,
+  type ReportedSkillAccess
+} from '@metorial/module-consumer-core';
+import type { AnyAccessTagSelector } from '@metorial/module-access';
+import { flagService } from '@metorial/module-flags';
+import { getConsumerSkillAccessWhere } from '@metorial/module-skill';
+import {
+  consumerDeviceDetectionCatalogPresenter,
+  consumerDeviceDetectionReportPresenter,
   consumerDevicePresenter,
   consumerDeviceTelemetryTokenPresenter
 } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { requireParam } from '../../lib/requireParam';
+import { reportedSkillsValidator } from '../../lib/deviceSkills';
 import { getSignedInOAuthToken } from '../../lib/signedInOAuthToken';
 import { checkAccess } from '../../middleware/checkAccess';
 import { requireDeviceTelemetry } from './deviceTelemetry';
@@ -22,7 +41,10 @@ let maxExcludedIds = 500;
 let maxIdLength = 128;
 let maxInstallTokenIds = 200;
 
+let maxSeq = 2_147_483_647;
+
 let clientKeyPattern = /^[a-z0-9][a-z0-9-]{0,63}$/;
+let versionPattern = /^[0-9A-Za-z.+_-]{1,64}$/;
 
 let resourceId = v.string({ modifiers: [v.maxLength(maxIdLength)] });
 
@@ -49,25 +71,47 @@ let consumerDeviceGroup = devicesGroup.use(async ctx => {
 
 let consumerDeviceTelemetryGroup = consumerDeviceGroup.use(requireDeviceTelemetry);
 
+let reportedSkillAccessOf = async (
+  accessTags: AnyAccessTagSelector | undefined
+): Promise<ReportedSkillAccess> => {
+  let where = await getConsumerSkillAccessWhere({ accessTags });
+
+  return where ? { where } : 'any';
+};
+
 type PresentableDevice = Parameters<
   typeof consumerDevicePresenter.present
 >[0]['consumerDevice'];
 
-let presentDevice = async (
-  ctx: { organization: Organization; project: Project },
-  consumerDevice: PresentableDevice
-) => {
-  let telemetry = await agentTrackingTokenService.listDeviceTelemetry({
-    organization: ctx.organization,
-    project: ctx.project,
-    consumerDevices: [consumerDevice]
-  });
+type DeviceContext = { organization: Organization; project: Project; instance: Instance };
 
-  return consumerDevicePresenter.present({
-    consumerDevice,
-    telemetry: telemetry.get(consumerDevice.oid)
-  });
+let presentDevices = async (ctx: DeviceContext, consumerDevices: PresentableDevice[]) => {
+  let [telemetry, view] = await Promise.all([
+    agentTrackingTokenService.listDeviceTelemetry({
+      organization: ctx.organization,
+      project: ctx.project,
+      consumerDevices
+    }),
+    consumerDeviceSettingsService.getDeviceViews({
+      organization: ctx.organization,
+      project: ctx.project,
+      instance: ctx.instance,
+      consumerDevices
+    })
+  ]);
+
+  return view.consumerDevices.map(consumerDevice =>
+    consumerDevicePresenter.present({
+      consumerDevice,
+      telemetry: telemetry.get(consumerDevice.oid),
+      monitor: view.monitor,
+      install: view.install
+    })
+  );
 };
+
+let presentDevice = async (ctx: DeviceContext, consumerDevice: PresentableDevice) =>
+  (await presentDevices(ctx, [consumerDevice]))[0]!;
 
 export let consumerDeviceController = Controller.create(
   {
@@ -156,7 +200,8 @@ export let consumerDeviceController = Controller.create(
                 'Magic MCP tokens the app installed on this device. Tokens of the same consumer profile that belong to no device yet are linked to it, so revoking the device deletes them.',
               modifiers: [v.maxLength(maxInstallTokenIds)]
             })
-          )
+          ),
+          skills: v.optional(reportedSkillsValidator)
         })
       )
       .output(consumerDevicePresenter)
@@ -166,6 +211,7 @@ export let consumerDeviceController = Controller.create(
           consumerProfile: ctx.consumerProfile,
           oauthToken: getSignedInOAuthToken(ctx),
           auditScope: ctx.auditScope,
+          skillAccess: await reportedSkillAccessOf(ctx.accessTags),
           input: {
             installationId: ctx.body.installation_id,
             name: ctx.body.name,
@@ -179,7 +225,11 @@ export let consumerDeviceController = Controller.create(
               installable: client.installable,
               supportsSkills: client.supports_skills
             })),
-            magicMcpTokenIds: ctx.body.magic_mcp_token_ids
+            magicMcpTokenIds: ctx.body.magic_mcp_token_ids,
+            reportedSkills: ctx.body.skills?.map(skill => ({
+              skillId: skill.skill_id,
+              name: skill.name
+            }))
           }
         });
 
@@ -216,18 +266,9 @@ export let consumerDeviceController = Controller.create(
           statuses: normalizeArrayParam(ctx.query.status)
         });
         let list = await paginator.run(ctx.query);
-        let telemetry = await agentTrackingTokenService.listDeviceTelemetry({
-          organization: ctx.organization,
-          project: ctx.project,
-          consumerDevices: list.items
-        });
+        let items = await presentDevices(ctx, list.items);
 
-        return Paginator.present(list, consumerDevice =>
-          consumerDevicePresenter.present({
-            consumerDevice,
-            telemetry: telemetry.get(consumerDevice.oid)
-          })
-        );
+        return Paginator.present({ ...list, items }, device => device);
       }),
 
     get: consumerDeviceGroup
@@ -324,6 +365,124 @@ export let consumerDeviceController = Controller.create(
         });
 
         return await presentDevice(ctx, consumerDevice);
+      }),
+
+    getDetectionCatalog: devicesGroup
+      .get(consumerPath('device-detection-catalog', 'deviceDetectionCatalog.get'), {
+        name: 'Get device detection catalog',
+        description:
+          'Returns the signals Metorial Desktop matches to find AI tools on a device. Fetch it again when `monitor.catalog_version` on the device changes. Returns 404 when AI tool detection is not available to the organization.'
+      })
+      .use(checkAccess({ possibleScopes: ['consumer#instance.device:read'] }))
+      .output(consumerDeviceDetectionCatalogPresenter)
+      .do(async ctx =>
+        consumerDeviceDetectionCatalogPresenter.present({
+          catalog: await consumerDeviceDetectionService.getCatalog({
+            organization: ctx.organization,
+            project: ctx.project
+          })
+        })
+      ),
+
+    reportDetections: consumerDeviceGroup
+      .post(
+        consumerPath('devices/:consumerDeviceId/detections', 'devices.detections.report'),
+        {
+          name: 'Report device detections',
+          description:
+            'Replaces what the device reported before with a full snapshot of the AI tools it found. Tools left out are marked gone. A report whose `seq` is not higher than the last accepted one changes nothing. Only the sign-in the device enrolled with can report; others get 412. Returns 403 `detection_disabled` when AI tool detection is off; the device then stops collecting.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['consumer#instance.device:write'] }))
+      .body(
+        'default',
+        v.object({
+          seq: v.number({
+            name: 'seq',
+            description:
+              'Sequence number of the report, increasing with every report the device sends. From 1 to 2147483647.',
+            modifiers: [v.integer(), v.minValue(1), v.maxValue(maxSeq)]
+          }),
+          generated_at: v.date({
+            name: 'generated_at',
+            description:
+              'When the device collected the snapshot. Times in the future count as the time the report arrived, and times more than 7 days back as 7 days back.'
+          }),
+          catalog_version: v.optional(
+            v.string({
+              name: 'catalog_version',
+              description:
+                'Version of the detection catalog the device matched against. Informational only; the report is matched against the current catalog.',
+              examples: ['5b8e7bd62ccb7f44'],
+              modifiers: [v.maxLength(64)]
+            })
+          ),
+          findings: v.array(
+            v.object({
+              tool_key: v.string({
+                name: 'tool_key',
+                description:
+                  'Catalog key of the AI tool found. Keys the current catalog does not list are ignored.',
+                examples: ['claude-code'],
+                modifiers: [v.regex(clientKeyPattern)]
+              }),
+              state: v.enumOf(Object.values(ConsumerDeviceDetectionState), {
+                name: 'state',
+                description:
+                  '`running` when a process of the tool was found running, otherwise `installed`.'
+              }),
+              confidence: v.enumOf(Object.values(ConsumerDeviceDetectionConfidence), {
+                name: 'confidence',
+                description: 'How sure the device is that the tool is present.'
+              }),
+              signal_kinds: v.array(
+                v.enumOf(Object.values(ConsumerDeviceDetectionSignalKind)),
+                {
+                  name: 'signal_kinds',
+                  description: 'Which kinds of signal matched.',
+                  modifiers: [v.minLength(1), v.maxLength(8)]
+                }
+              ),
+              version: v.optional(
+                v.string({
+                  name: 'version',
+                  description:
+                    'Installed version of the tool, when the device could read it. Letters, digits, `.`, `+`, `_` and `-`, up to 64 characters.',
+                  examples: ['1.7.4'],
+                  modifiers: [v.regex(versionPattern)]
+                })
+              )
+            }),
+            {
+              name: 'findings',
+              description: `Every AI tool found on the device, at most ${maxDetectionFindings}. An empty list marks every tool gone.`,
+              modifiers: [v.maxLength(maxDetectionFindings)]
+            }
+          )
+        })
+      )
+      .output(consumerDeviceDetectionReportPresenter)
+      .do(async ctx => {
+        let report = await consumerDeviceDetectionService.reportDetections({
+          organization: ctx.organization,
+          project: ctx.project,
+          consumerDevice: ctx.consumerDevice,
+          oauthToken: getSignedInOAuthToken(ctx),
+          auditScope: ctx.auditScope,
+          input: {
+            seq: ctx.body.seq,
+            generatedAt: ctx.body.generated_at,
+            findings: ctx.body.findings.map(finding => ({
+              toolKey: finding.tool_key,
+              state: finding.state,
+              confidence: finding.confidence,
+              signalKinds: finding.signal_kinds,
+              version: finding.version ?? null
+            }))
+          }
+        });
+
+        return consumerDeviceDetectionReportPresenter.present(report);
       }),
 
     issueTelemetryToken: consumerDeviceTelemetryGroup

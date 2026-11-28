@@ -32,7 +32,7 @@ export let AgentTrackingListLayout = () => {
     <ContentLayout>
       <PageHeader
         title={
-          <WithInfo info="What your team's Claude Code sessions cost, and who ran them.">
+          <WithInfo info="What your team's AI coding agent sessions cost, and who ran them.">
             Agent Usage
           </WithInfo>
         }
@@ -45,6 +45,7 @@ export let AgentTrackingListLayout = () => {
           { label: 'Sessions', to: Paths.instance.agentTracking.sessions(...params) },
           { label: 'Spend', to: Paths.instance.agentTracking.spend(...params) },
           { label: 'Team', to: Paths.instance.agentTracking.team(...params) },
+          { label: 'Tools', to: Paths.instance.agentTracking.tools(...params) },
           { label: 'Report', to: Paths.instance.agentTracking.report(...params) },
           { label: setupLabel, to: Paths.instance.agentTracking.setup(...params) }
         ]}

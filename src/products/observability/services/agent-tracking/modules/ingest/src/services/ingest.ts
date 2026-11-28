@@ -17,6 +17,7 @@ import {
 } from '@mtsrc/agent-tracking-otlp';
 import {
   assertIngestAllowed,
+  channelNotAllowedError,
   clientNotAllowedError,
   isClientAllowed,
   normalizeClient
@@ -24,6 +25,7 @@ import {
 import {
   bulkBatchHeaderSchema,
   bulkItemSchema,
+  parseTimestamp,
   type BulkBatchHeader,
   type BulkDialect,
   type BulkRejection,
@@ -38,12 +40,13 @@ import {
   invalidClientError,
   invalidPayloadError
 } from '../lib/errors';
+import { isPlainObject, parseJsonObject, parseJsonObjectBytes } from '../lib/payload';
 import {
-  isPlainObject,
-  parseJsonObject,
-  parseJsonObjectBytes,
-  parseTimestamp
-} from '../lib/payload';
+  allowsDialect,
+  allowsHookRoute,
+  ingestPolicyFor,
+  oldestAllowedAt
+} from '../lib/policy';
 import { getRuntime } from '../lib/runtime';
 
 let maxHeaderBytes = 4096;
@@ -53,7 +56,6 @@ let maxDetailLength = 160;
 let maxFieldLength = 128;
 let maxSourceRefLength = 512;
 let maxClientVersionLength = 64;
-let millisPerDay = 86_400_000;
 
 let headerFieldPattern = /^[\x20-\x7e]{1,128}$/;
 
@@ -119,11 +121,20 @@ class IngestServiceImpl {
 
     if (decoded.itemCount > otlpLimits.maxItems) throw new ServiceError(tooManyItemsError());
 
-    let mapped = mapOtlpDecoded(signal, decoded);
-    let collector = createCollector(d.call, { route: 'otlp_http', lane: 'live' });
+    let mapped = mapOtlpDecoded(signal, decoded, ingestPolicyFor(principal));
+    let collector = createCollector(d.call, {
+      route: 'otlp_http',
+      lane: 'live',
+      oldestAllowed: oldestAllowedAt({
+        principal,
+        lane: 'live',
+        now: getRuntime().clock().getTime()
+      })
+    });
 
     let notAllowed = 0;
     let unbuildable = 0;
+    let tooOld = 0;
 
     mapped.groups.forEach((group, index) => {
       if (!isClientAllowed(principal, group.dialect.client)) {
@@ -132,7 +143,10 @@ class IngestServiceImpl {
       }
 
       for (let entry of group.mapped) {
-        if (!collector.add([entry])) unbuildable++;
+        let outcome = collector.add([entry]);
+
+        if (outcome == 'unbuildable') unbuildable++;
+        if (outcome == 'too_old') tooOld++;
       }
     });
 
@@ -142,7 +156,7 @@ class IngestServiceImpl {
 
     await collector.flush();
 
-    let rejected = decoded.malformed + mapped.failed + notAllowed + unbuildable;
+    let rejected = decoded.malformed + mapped.failed + notAllowed + unbuildable + tooOld;
 
     if (rejected == 0) return { signal, rejected, message: undefined };
 
@@ -151,7 +165,8 @@ class IngestServiceImpl {
       mapped.failed + unbuildable > 0
         ? `${mapped.failed + unbuildable} could not be mapped`
         : '',
-      notAllowed > 0 ? `${notAllowed} for clients this token may not use` : ''
+      notAllowed > 0 ? `${notAllowed} for clients this token may not use` : '',
+      tooOld > 0 ? `${tooOld} too old` : ''
     ].filter(Boolean);
 
     return { signal, rejected, message: `Rejected: ${reasons.join(', ')}.` };
@@ -167,6 +182,8 @@ class IngestServiceImpl {
     let client = normalizeClient(d.client);
     if (!client) throw new ServiceError(invalidClientError());
 
+    if (!allowsHookRoute(d.call.principal)) throw new ServiceError(channelNotAllowedError());
+
     if (d.bytes.length == 0) throw invalid('The request body is empty.');
 
     let payload = parseJsonObjectBytes(d.bytes);
@@ -177,7 +194,10 @@ class IngestServiceImpl {
     let mapped;
 
     try {
-      mapped = hookDialectFor(client).map({ identityHint }, payload);
+      mapped = hookDialectFor(client).map(
+        { identityHint, policy: ingestPolicyFor(d.call.principal) },
+        payload
+      );
     } catch {
       throw invalid('The hook payload could not be mapped.');
     }
@@ -188,7 +208,7 @@ class IngestServiceImpl {
       arrivalIsEventTime: true
     });
 
-    if (!collector.add(mapped, d.observedAt)) {
+    if (collector.add(mapped, d.observedAt) != 'added') {
       throw invalid('The hook payload could not be mapped.');
     }
 
@@ -211,13 +231,11 @@ class IngestServiceImpl {
     }
 
     let { principal } = d.call;
+    let policy = ingestPolicyFor(principal);
     let lane = header.mode == 'backfill' ? ('backfill' as const) : ('live' as const);
     let now = getRuntime().clock().getTime();
 
-    let maxAgeDays =
-      principal.instance.backfillMaxAgeDays ?? principal.instance.recordRetentionDays;
-    let oldestAllowed = lane == 'backfill' ? now - maxAgeDays * millisPerDay : null;
-
+    let oldestAllowed = oldestAllowedAt({ principal, lane, now });
     let latestAllowed = now + principal.instance.skewBoundSeconds * 1000;
 
     let collector = createCollector(d.call, {
@@ -286,6 +304,11 @@ class IngestServiceImpl {
           continue;
         }
 
+        if (!allowsDialect({ principal, policy, manifest: resolution.manifest, lane })) {
+          reject('not_allowed');
+          continue;
+        }
+
         if (
           (item.client_version && item.client_version.length > maxClientVersionLength) ||
           !isVersionSupported(resolution.manifest, item.client_version)
@@ -340,11 +363,48 @@ class IngestServiceImpl {
           continue;
         }
 
+        let checked = resolution.dialect.check?.(payload);
+
+        if (checked && !checked.success) {
+          reject(
+            'parse_error',
+            this.describeFirstError(
+              checked.errors.map(error => ({
+                ...error,
+                path: ['payload', ...(error.path ?? [])]
+              }))
+            )
+          );
+          continue;
+        }
+
         let identityHint = `${item.source.kind}|${item.source.ref}|${item.source.seq ?? ''}`;
 
-        let mapped = resolution.dialect.map({ identityHint }, payload);
+        let mapped = resolution.dialect.map(
+          {
+            identityHint,
+            client,
+            ...(item.client_version ? { clientVersion: item.client_version } : {}),
+            observedAt,
+            policy
+          },
+          checked ? (checked.value as Record<string, unknown>) : payload
+        );
 
-        if (!collector.add(mapped, observedAt)) {
+        let outcome = collector.add(
+          mapped,
+          observedAt,
+          lane == 'live'
+            ? oldestAllowedAt({ principal, lane, now, manifest: resolution.manifest })
+            : null
+        );
+
+        if (outcome == 'too_old') {
+          reject('too_old');
+          continue;
+        }
+
+        if (outcome == 'unbuildable') {
           reject('parse_error', 'The payload could not be mapped.');
           continue;
         }

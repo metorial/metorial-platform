@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { formatAmount } from './costFormat';
 import {
+  breakdownOthersLabel,
   costChange,
   costSplit,
   describeSpendChange,
@@ -140,5 +141,17 @@ describe('hasUsage', () => {
     expect(hasUsage(figures(0, 12, 0))).toBe(true);
     expect(hasUsage(figures(0, 0, 250000))).toBe(true);
     expect(hasUsage(figures(0, 0, -250000))).toBe(true);
+  });
+});
+
+describe('breakdownOthersLabel', () => {
+  it('names the rest of a breakdown by its group', () => {
+    expect(
+      (['repository', 'branch', 'ticket'] as const).map(group =>
+        breakdownOthersLabel(group, 3)
+      )
+    ).toEqual(['Other Repositories', 'Other Branches', 'Other Tickets']);
+    expect(breakdownOthersLabel('member', 3)).toBe('3 Others');
+    expect(breakdownOthersLabel('member', null)).toBe('Everyone Else');
   });
 });

@@ -1,8 +1,5 @@
-import {
-  invalidPayloadError,
-  ingestService,
-  parseTimestamp
-} from '@mtsrc/agent-tracking-module-ingest';
+import { invalidPayloadError, ingestService } from '@mtsrc/agent-tracking-module-ingest';
+import { parseTimestamp } from '@mtsrc/agent-tracking-spec';
 import { readBody } from '../body';
 import { ingestCallOf, type IngestHandler } from '../request';
 import { errorResponse, jsonResponse } from '../response';

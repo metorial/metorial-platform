@@ -12,10 +12,16 @@ import {
   MetorialDashboardInstanceAgentTrackingIngestSourcesEndpoint,
   MetorialDashboardInstanceAgentTrackingMembersEndpoint,
   MetorialDashboardInstanceAgentTrackingSessionsEndpoint,
+  MetorialDashboardInstanceAgentTrackingSessionsToolCallsEndpoint,
   MetorialDashboardInstanceAgentTrackingSettingsEndpoint,
   MetorialDashboardInstanceAgentTrackingSetupStatusEndpoint,
   MetorialDashboardInstanceAgentTrackingSpendEndpoint,
+  MetorialDashboardInstanceAgentTrackingToolCallSessionsEndpoint,
+  MetorialDashboardInstanceAgentTrackingToolsEndpoint,
   MetorialDashboardInstanceAgentTrackingViewsEndpoint,
+  MetorialDashboardInstanceAiToolDetectionsEndpoint,
+  MetorialDashboardInstanceAiToolsEndpoint,
+  MetorialDashboardInstanceAiToolsPolicyEndpoint,
   MetorialDashboardInstanceAssistantsEndpoint,
   MetorialDashboardInstanceCallbackEventsEndpoint,
   MetorialDashboardInstanceCallbackTriggerSelectionOptionsEndpoint,
@@ -32,6 +38,7 @@ import {
   MetorialDashboardInstanceChatsMessagesReactionsEndpoint,
   MetorialDashboardInstanceChatsThreadsEndpoint,
   MetorialDashboardInstanceChatWorkspacesEndpoint,
+  MetorialDashboardInstanceConsumerDeviceSettingsEndpoint,
   MetorialDashboardInstanceConsumersDevicesEndpoint,
   MetorialDashboardInstanceConsumersEndpoint,
   MetorialDashboardInstanceConsumersProfilesEndpoint,
@@ -1228,11 +1235,26 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     devices: new MetorialDashboardInstanceConsumersDevicesEndpoint(manager)
   }),
   consumerSurfaces: new MetorialDashboardInstanceConsumerSurfacesEndpoint(manager),
+  consumerDeviceSettings: new MetorialDashboardInstanceConsumerDeviceSettingsEndpoint(manager),
+
+  aiTools: Object.assign(new MetorialDashboardInstanceAiToolsEndpoint(manager), {
+    policy: new MetorialDashboardInstanceAiToolsPolicyEndpoint(manager)
+  }),
+  aiToolDetections: new MetorialDashboardInstanceAiToolDetectionsEndpoint(manager),
 
   agentTracking: {
     ingestSources: new MetorialDashboardInstanceAgentTrackingIngestSourcesEndpoint(manager),
     spend: new MetorialDashboardInstanceAgentTrackingSpendEndpoint(manager),
-    sessions: new MetorialDashboardInstanceAgentTrackingSessionsEndpoint(manager),
+    tools: new MetorialDashboardInstanceAgentTrackingToolsEndpoint(manager),
+    sessions: Object.assign(
+      new MetorialDashboardInstanceAgentTrackingSessionsEndpoint(manager),
+      {
+        toolCalls: new MetorialDashboardInstanceAgentTrackingSessionsToolCallsEndpoint(manager)
+      }
+    ),
+    toolCallSessions: new MetorialDashboardInstanceAgentTrackingToolCallSessionsEndpoint(
+      manager
+    ),
     filterValues: new MetorialDashboardInstanceAgentTrackingFilterValuesEndpoint(manager),
     members: new MetorialDashboardInstanceAgentTrackingMembersEndpoint(manager),
     setupStatus: new MetorialDashboardInstanceAgentTrackingSetupStatusEndpoint(manager),

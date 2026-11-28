@@ -85,7 +85,7 @@ model Skill {
   consumerSkills                  ConsumerSkill[]
   skillGroupItems                 SkillGroupItem[]
   magicMcpEndpointSkillSelections MagicMcpEndpointSkillSelection[]
-  skillParticipants               SkillParticipant[]               @ignore
+  skillParticipants               SkillParticipant[]                  @ignore
   skillVersions                   SkillVersion[]
   skillAgents                     SkillAgent[]
   skillPluginSkills               SkillPluginSkill[]
@@ -98,6 +98,7 @@ model Skill {
   upstreamForkSyncs               SkillForkSync[]                     @relation("SkillForkSyncUpstream")
   skillImportItems                SkillImportItem[]
   consumerDeviceClientExclusions  ConsumerDeviceClientExcludedSkill[]
+  consumerDeviceSkills            ConsumerDeviceSkill[]
 
   @@index([instanceOid, status])
   @@index([instanceOid, storeId])

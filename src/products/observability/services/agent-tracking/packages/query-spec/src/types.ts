@@ -1,6 +1,13 @@
 export let queryLanguageVersion = '0';
 
-export let datasetNames = ['usage', 'sessions', 'requests', 'tool_calls', 'sources'] as const;
+export let datasetNames = [
+  'usage',
+  'sessions',
+  'requests',
+  'tool_calls',
+  'skill_activations',
+  'sources'
+] as const;
 
 export type DatasetName = (typeof datasetNames)[number];
 

@@ -12,10 +12,17 @@ export type CollectorOptions = {
   batchId?: string;
   agent?: NormalizedRecord['ingest']['agent'];
   arrivalIsEventTime?: boolean;
+  oldestAllowed?: number | null;
 };
 
+export type CollectOutcome = 'added' | 'unbuildable' | 'too_old';
+
 export type RecordCollector = {
-  add: (mapped: Mapped[], itemObservedAt?: Date | null) => boolean;
+  add: (
+    mapped: Mapped[],
+    itemObservedAt?: Date | null,
+    oldestAllowed?: number | null
+  ) => CollectOutcome;
   size: () => number;
   flush: () => Promise<number>;
 };
@@ -33,7 +40,7 @@ export let createCollector = (
   let records = new Map<string, NormalizedRecord>();
 
   return {
-    add: (mapped, itemObservedAt) => {
+    add: (mapped, itemObservedAt, itemOldestAllowed): CollectOutcome => {
       let built: NormalizedRecord[];
 
       try {
@@ -56,14 +63,24 @@ export let createCollector = (
           )
         );
       } catch {
-        return false;
+        return 'unbuildable';
+      }
+
+      let oldestAllowed =
+        itemOldestAllowed === undefined ? options.oldestAllowed : itemOldestAllowed;
+
+      if (
+        typeof oldestAllowed == 'number' &&
+        built.some(record => Date.parse(record.occurred_at) < oldestAllowed)
+      ) {
+        return 'too_old';
       }
 
       for (let record of built) {
         if (!records.has(record.id)) records.set(record.id, record);
       }
 
-      return true;
+      return 'added';
     },
 
     size: () => records.size,

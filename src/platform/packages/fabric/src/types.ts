@@ -40,6 +40,7 @@ import {
   AgentTrackingIngestSource,
   AgentTrackingIngestToken,
   AgentTrackingView,
+  AiToolPolicy,
   ApiKey,
   AuditLogStream,
   Consumer,
@@ -48,6 +49,7 @@ import {
   ConsumerAccessRequest,
   ConsumerDevice,
   ConsumerDeviceClient,
+  ConsumerDeviceSettings,
   ConsumerGroup,
   ConsumerInvite,
   ConsumerProfile,
@@ -956,6 +958,14 @@ export type AgentTrackingViewInput = {
 export type AgentTrackingOrganizationSettingsValues = {
   organizationId: string;
   privacy: { hideIndividuals: boolean; minGroupUsers: number };
+  desktop: {
+    toolDetails: boolean;
+    sessionContext: boolean;
+    sessionTitles: boolean;
+    historyImport: boolean;
+    historyImportDays: number;
+  };
+  links: { ticketUrlTemplate: string | null };
 };
 
 export type AgentTrackingProjectSettingsValues = {
@@ -979,6 +989,8 @@ export type AgentTrackingSettingsValues =
 
 export type AgentTrackingSettingsInput = {
   privacy?: Partial<AgentTrackingOrganizationSettingsValues['privacy']>;
+  desktop?: Partial<AgentTrackingOrganizationSettingsValues['desktop']>;
+  links?: Partial<AgentTrackingOrganizationSettingsValues['links']>;
   retention?: Partial<AgentTrackingProjectSettingsValues['retention']>;
   content?: Partial<AgentTrackingInstanceSettingsValues['content']>;
   classification?: Partial<AgentTrackingInstanceSettingsValues['classification']>;
@@ -1487,6 +1499,10 @@ export interface FabricEvents {
   'consumer.device.enrolled:after': { consumerDevice: AuditConsumerDevice; auditScope: AuditScope };
   'consumer.device.updated:after': { consumerDevice: AuditConsumerDevice; previousConsumerDevice: AuditConsumerDevice; auditScope: AuditScope };
   'consumer.device.ended:after': { consumerDevice: AuditConsumerDevice; previousConsumerDevice: AuditConsumerDevice; auditScope: AuditScope };
+  'consumer.device.detections.changed:after': { consumerDevice: AuditConsumerDevice; added: string[]; removed: string[]; auditScope: AuditScope };
+  'consumer.device_settings.updated:after': { consumerDeviceSettings: ConsumerDeviceSettings; previousConsumerDeviceSettings: ConsumerDeviceSettings | null; auditScope: AuditScope };
+
+  'ai_tool.policy.updated:after': { aiToolPolicy: AiToolPolicy; previousAiToolPolicy: AiToolPolicy | null; auditScope: AuditScope };
 
   'agent_tracking.ingest_token.created:after': { ingestToken: AuditAgentTrackingIngestToken; replacedIngestTokenIds: string[]; auditScope: AuditScope };
 

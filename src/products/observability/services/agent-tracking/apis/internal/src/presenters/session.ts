@@ -1,4 +1,6 @@
+import type { Organization } from '@mtsrc/agent-tracking-db';
 import { isSummaryStale } from '@mtsrc/agent-tracking-module-sessions';
+import { desktopSettingsOf } from '@mtsrc/agent-tracking-spec';
 import type {
   ReportedCost,
   SessionDocument,
@@ -69,11 +71,41 @@ let summaryPresenter = (summary: SessionSummary) => ({
   lines: { added: summary.lines.added, removed: summary.lines.removed },
   commits: summary.commits,
   pullRequests: summary.pullRequests,
+
+  commitRefs: (summary.commitRefs ?? []).map(commit => ({
+    sha: commit.sha,
+    at: commit.at,
+    branch: commit.branch ?? null,
+    ticketRefs: commit.ticketRefs ?? []
+  })),
+
+  pullRequestRefs: (summary.pullRequestRefs ?? []).map(pullRequest => ({
+    key: pullRequest.key,
+    provider: pullRequest.provider,
+    repository: pullRequest.repository,
+    number: pullRequest.number,
+    kind: pullRequest.kind
+  })),
+
   errorsByClass: summary.errorsByClass,
-  compactions: summary.compactions
+  compactions: summary.compactions,
+
+  metorial: {
+    providerIds: summary.metorial?.providerIds ?? [],
+    toolKeys: summary.metorial?.toolKeys ?? []
+  }
 });
 
-export let sessionPresenter = (session: SessionDocument) => ({
+export let sessionTitlesShown = (organization: Pick<Organization, 'settings'>) =>
+  desktopSettingsOf(organization.settings).sessionTitles;
+
+export let sessionPresenter = ({
+  session,
+  titles
+}: {
+  session: SessionDocument;
+  titles: boolean;
+}) => ({
   object: 'agent_tracking#session',
 
   sessionKey: session._id,
@@ -105,6 +137,11 @@ export let sessionPresenter = (session: SessionDocument) => ({
     repoIds: session.context?.repoIds ?? [],
     branch: session.context?.branch ?? null,
     head: session.context?.head ?? null,
+    defaultBranch: session.context?.defaultBranch ?? null,
+    worktree: session.context?.worktree ?? null,
+    subPath: session.context?.subPath ?? null,
+    permissionMode: session.context?.permissionMode ?? null,
+    title: titles ? (session.context?.title ?? null) : null,
     ticketRefs: session.context?.ticketRefs ?? [],
     tags: (session.context?.tags ?? []).map(tag => ({
       k: tag.k,

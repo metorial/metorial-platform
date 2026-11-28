@@ -195,12 +195,14 @@ export let col = {
   custom: <Item extends { id: string }, Props extends {} = any, Ctx = any>(
     opts: ColumnBase & {
       id: string;
+      interactive?: boolean;
       render: (row: Item, props: Props, ctx: Ctx) => React.ReactNode;
     }
   ): TableColumn<Item, Props, Ctx> => ({
     id: opts.id,
     isDefault: opts.isDefault ?? true,
     header: opts.header ?? opts.id,
+    interactive: opts.interactive,
     render: opts.render
   })
 };

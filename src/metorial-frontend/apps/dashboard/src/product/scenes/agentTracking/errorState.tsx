@@ -32,7 +32,7 @@ export let PrivacySettingsButton = () => {
       to={Paths.organization.instance.agentUsage(ctx.organization, ctx.project, ctx.instance)}
     >
       <Button size="2" variant="outline" as="span">
-        Privacy Settings
+        Agent Usage Settings
       </Button>
     </Link>
   );
@@ -82,7 +82,7 @@ export let AgentTrackingErrorState = ({
     return (
       <Callout color="gray" action={<PrivacySettingsButton />}>
         This organization hides individual data in Agent Usage; an organization admin can
-        change this in Project Settings.
+        change this in the Agent Usage settings.
       </Callout>
     );
   }

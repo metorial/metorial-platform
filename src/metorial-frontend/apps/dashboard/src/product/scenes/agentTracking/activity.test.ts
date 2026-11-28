@@ -6,6 +6,7 @@ import {
   formatSpan,
   formatTimeSpan,
   sessionActivity,
+  sessionHeading,
   sessionTitle
 } from './activity';
 
@@ -117,5 +118,27 @@ describe('sessionTitle', () => {
     expect(sessionTitle({ member: { name: null, email: null }, startedAt }, now)).toBe(
       'Session on Nov 19'
     );
+  });
+});
+
+describe('sessionHeading', () => {
+  let session = {
+    member: { name: 'Maya Okafor', email: 'maya@example.com' },
+    startedAt: new Date(2026, 10, 19, 9, 0)
+  };
+
+  it('leads with the session title and keeps the member and day below it', () => {
+    expect(
+      sessionHeading({ ...session, context: { title: ' Fix the login page ' } }, now)
+    ).toEqual({ title: 'Fix the login page', byline: 'Maya Okafor on Nov 19' });
+  });
+
+  it('keeps the member and day as the heading without a title', () => {
+    for (let title of [null, '  ']) {
+      expect(sessionHeading({ ...session, context: { title } }, now)).toEqual({
+        title: 'Maya Okafor on Nov 19',
+        byline: null
+      });
+    }
   });
 });

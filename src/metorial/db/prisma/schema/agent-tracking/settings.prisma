@@ -11,6 +11,14 @@ model AgentTrackingOrganizationSettings {
   hideIndividuals Boolean @default(false)
   minGroupUsers   Int     @default(5)
 
+  toolDetails       Boolean @default(false)
+  sessionContext    Boolean @default(true)
+  sessionTitles     Boolean @default(false)
+  historyImport     Boolean @default(false)
+  historyImportDays Int     @default(90)
+
+  ticketUrlTemplate String?
+
   organizationOid BigInt       @unique
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 

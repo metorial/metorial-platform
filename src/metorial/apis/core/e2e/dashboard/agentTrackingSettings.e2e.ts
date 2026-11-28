@@ -25,7 +25,15 @@ let defaults = {
   organization: {
     object: 'agent_tracking.organization_settings',
     service_status: 'applied',
-    privacy: { hide_individuals: false, min_group_users: 5 }
+    privacy: { hide_individuals: false, min_group_users: 5 },
+    desktop: {
+      tool_details: false,
+      session_context: true,
+      session_titles: false,
+      history_import: false,
+      history_import_days: 90
+    },
+    links: { ticket_url_template: null }
   },
   project: {
     object: 'agent_tracking.project_settings',
@@ -56,6 +64,9 @@ describe('api-core dashboard: agent tracking settings', () => {
   let limited = useMember(org);
   let projectAdmin = useMember(org);
   let organizationAdmin = useMember(org);
+  let providerCallsOrg = useOrganization();
+  let agentReader = useMember(providerCallsOrg);
+  let agentAndToolCallReader = useMember(providerCallsOrg);
 
   let routes = () => agentTrackingSettingsPaths(org.ids);
 
@@ -141,24 +152,26 @@ describe('api-core dashboard: agent tracking settings', () => {
   let grant = async (
     holder: { member: { actor_id: string } },
     target: string,
-    scopes: string[]
+    scopes: string[],
+    owner = org
   ) => {
+    let management = owner.clients.management;
     let policy = expectOk(
-      await org.clients.management.post('/organization/access-policies', {
+      await management.post('/organization/access-policies', {
         name: uniqueId('Agent tracking access'),
         document: { access: [{ target, scopes }] }
       })
     );
     let team = expectOk(
-      await org.clients.management.post('/organization/teams', { name: uniqueId('Team') })
+      await management.post('/organization/teams', { name: uniqueId('Team') })
     );
     expectOk(
-      await org.clients.management.post(`/organization/teams/${team.id}/members`, {
+      await management.post(`/organization/teams/${team.id}/members`, {
         actor_id: holder.member.actor_id
       })
     );
     expectOk(
-      await org.clients.management.post(`/organization/teams/${team.id}/policies`, {
+      await management.post(`/organization/teams/${team.id}/policies`, {
         access_policy_id: policy.id
       })
     );
@@ -229,10 +242,64 @@ describe('api-core dashboard: agent tracking settings', () => {
     await update('project', { retention: { usage_days: null } });
   });
 
+  it('splits agent provider calls only for viewers who can also read tool calls', async () => {
+    let management = providerCallsOrg.clients.management;
+    let everyone = (await listAll(management, '/organization/access-policies')).find(
+      (item: any) => item.type === 'everyone'
+    );
+    let withoutToolCalls = (scopes: string[] = []) =>
+      scopes.filter(scope => !scope.startsWith('instance.provider.session:'));
+
+    expectOk(
+      await management.patch(`/organization/access-policies/${everyone.id}`, {
+        document: {
+          access: everyone.document.access.map((entry: any) => ({
+            ...entry,
+            scopes: withoutToolCalls(entry.scopes)
+          }))
+        }
+      })
+    );
+
+    let instanceId = providerCallsOrg.ids.instanceId;
+    await grant(agentReader, instanceId, ['instance.agent_tracking:read'], providerCallsOrg);
+    await grant(
+      agentAndToolCallReader,
+      instanceId,
+      ['instance.agent_tracking:read', 'instance.provider.session:read'],
+      providerCallsOrg
+    );
+
+    let query = { query: { group_by: 'repository' } };
+    let path = agentTrackingPath(providerCallsOrg, '/tools/provider-calls');
+
+    expectError(await agentReader.clients.rest.get(path, query), 403);
+    expectOk(await agentAndToolCallReader.clients.rest.get(path, query));
+  });
+
   it('rejects values out of range', async () => {
     for (let [level, body] of [
       ['organization', { privacy: { min_group_users: 2 } }],
       ['organization', { privacy: { min_group_users: 101 } }],
+      ['organization', { links: { ticket_url_template: 'https://linear.app/acme/issue' } }],
+      ['organization', { links: { ticket_url_template: 'ftp://tickets.example.com/{key}' } }],
+      ['organization', { links: { ticket_url_template: 'linear.app/acme/issue/{key}' } }],
+      ['organization', { links: { ticket_url_template: 'https://{key}.example.com/x' } }],
+      [
+        'organization',
+        { links: { ticket_url_template: 'https://tickets.example.com/\n{key}' } }
+      ],
+      [
+        'organization',
+        {
+          links: {
+            ticket_url_template: `https://tickets.example.com/${'a'.repeat(500)}/{key}`
+          }
+        }
+      ],
+      ['organization', { desktop: { history_import_days: 0 } }],
+      ['organization', { desktop: { history_import_days: 366 } }],
+      ['organization', { desktop: { history_import_days: 30.5 } }],
       ['project', { retention: { record_days: 0 } }],
       ['project', { retention: { usage_days: 1.5 } }],
       ['instance', { content: { mode: 'everything' } }]
@@ -243,7 +310,15 @@ describe('api-core dashboard: agent tracking settings', () => {
 
   it('presents each change and audits who changed what, with the values before', async () => {
     let privacy = await update('organization', {
-      privacy: { hide_individuals: true, min_group_users: 7 }
+      privacy: { hide_individuals: true, min_group_users: 7 },
+      desktop: {
+        tool_details: true,
+        session_context: false,
+        session_titles: true,
+        history_import: true,
+        history_import_days: 200
+      },
+      links: { ticket_url_template: 'https://linear.app/acme/issue/{key}' }
     });
     let retention = await update('project', {
       retention: { record_days: 30, usage_days: 200 }
@@ -255,7 +330,15 @@ describe('api-core dashboard: agent tracking settings', () => {
 
     expect(privacy).toMatchObject({
       service_status: 'applied',
-      privacy: { hide_individuals: true, min_group_users: 7 }
+      privacy: { hide_individuals: true, min_group_users: 7 },
+      desktop: {
+        tool_details: true,
+        session_context: false,
+        session_titles: true,
+        history_import: true,
+        history_import_days: 200
+      },
+      links: { ticket_url_template: 'https://linear.app/acme/issue/{key}' }
     });
     expect(retention).toMatchObject({
       service_status: 'applied',
@@ -275,7 +358,15 @@ describe('api-core dashboard: agent tracking settings', () => {
 
     expect(
       await update('organization', {
-        privacy: { hide_individuals: false, min_group_users: 5 }
+        privacy: { hide_individuals: false, min_group_users: 5 },
+        desktop: {
+          tool_details: false,
+          session_context: true,
+          session_titles: false,
+          history_import: false,
+          history_import_days: 90
+        },
+        links: { ticket_url_template: '' }
       })
     ).toMatchObject(defaults.organization);
     expect(
@@ -316,9 +407,27 @@ describe('api-core dashboard: agent tracking settings', () => {
       organization_actor_id: owner.actor_id,
       payload: {
         organizationId: org.ids.organizationId,
-        privacy: { hideIndividuals: true, minGroupUsers: 7 }
+        privacy: { hideIndividuals: true, minGroupUsers: 7 },
+        desktop: {
+          toolDetails: true,
+          sessionContext: false,
+          sessionTitles: true,
+          historyImport: true,
+          historyImportDays: 200
+        },
+        links: { ticketUrlTemplate: 'https://linear.app/acme/issue/{key}' }
       },
-      previous_attributes: { privacy: { hideIndividuals: false, minGroupUsers: 5 } }
+      previous_attributes: {
+        privacy: { hideIndividuals: false, minGroupUsers: 5 },
+        desktop: {
+          toolDetails: false,
+          sessionContext: true,
+          sessionTitles: false,
+          historyImport: false,
+          historyImportDays: 90
+        },
+        links: { ticketUrlTemplate: null }
+      }
     });
     expect(
       entries.find((item: any) => item.payload?.retention?.recordDays === 30)
@@ -345,7 +454,17 @@ describe('api-core dashboard: agent tracking settings', () => {
     );
     expect(restored).toMatchObject({
       organization_actor_id: owner.actor_id,
-      previous_attributes: { privacy: { hideIndividuals: true, minGroupUsers: 7 } }
+      previous_attributes: {
+        privacy: { hideIndividuals: true, minGroupUsers: 7 },
+        desktop: {
+          toolDetails: true,
+          sessionContext: false,
+          sessionTitles: true,
+          historyImport: true,
+          historyImportDays: 200
+        },
+        links: { ticketUrlTemplate: 'https://linear.app/acme/issue/{key}' }
+      }
     });
   }, 180_000);
 });
@@ -368,6 +487,8 @@ describe('api-core dashboard: agent tracking with individuals hidden', () => {
     ['/spend/breakdown', { group_by: 'model' }],
     ['/sessions', {}],
     [`/sessions/atse_${uniqueId('missing')}`, {}],
+    [`/sessions/atse_${uniqueId('missing')}/tool-calls`, {}],
+    ['/tool-call-sessions', { tool_call_id: 'tcl_e2e_missing' }],
     ['/filter-values', { field: 'member' }],
     ['/filter-values', { field: 'model' }],
     ['/members', {}],
@@ -375,7 +496,11 @@ describe('api-core dashboard: agent tracking with individuals hidden', () => {
     ['/spend/timeline', { range: 'today' }],
     ['/members/insights', {}],
     ['/spend/breakdown', { group_by: 'model', member_id: 'aten_0mhNnEqM7XQb3vXq8gD2' }],
-    ['/filter-values', { field: 'seat' }]
+    ['/filter-values', { field: 'seat' }],
+    ['/filter-values', { field: 'provider' }],
+    ['/tools/provider-calls', { group_by: 'member' }],
+    ['/tools/provider-calls', { group_by: 'repository' }],
+    ['/tools/provider-calls', { group_by: 'client' }]
   ];
 
   it('answers 403 to reads about one person, filters and today, and presents whole UTC days', async () => {

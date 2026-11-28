@@ -1,3 +1,4 @@
+import { listedSessionFilter } from '@mtsrc/agent-tracking-store';
 import type { Organization } from '@mtsrc/agent-tracking-db';
 
 export let sessionStates = ['active', 'idle', 'ended'] as const;
@@ -10,6 +11,11 @@ export type SessionListFilters = {
   agentIds?: string[];
   modelIds?: (string | null)[];
   clientFamilies?: string[];
+  repoIds?: string[];
+  branches?: string[];
+  ticketRefs?: string[];
+  pullRequests?: string[];
+  metorialProviderIds?: string[];
   states?: (typeof sessionStates)[number][];
   from?: Date;
   to?: Date;
@@ -60,11 +66,17 @@ export let sessionListFilter = (
 ) =>
   defined({
     ...sessionScopeFilter(organization, filters),
+    ...listedSessionFilter,
     'observed.userId': inFilter(filters.userIds),
     'observed.deviceId': inFilter(filters.deviceIds),
     'observed.agentId': inFilter(filters.agentIds),
     ...modelFilter(filters.modelIds),
     'client.family': inFilter(filters.clientFamilies),
+    'context.repoIds': inFilter(filters.repoIds),
+    'context.branch': inFilter(filters.branches),
+    'context.ticketRefs': inFilter(filters.ticketRefs),
+    'summary.pullRequestRefs.key': inFilter(filters.pullRequests),
+    'summary.metorial.providerIds': inFilter(filters.metorialProviderIds),
     state: inFilter(filters.states),
     startedAt: range(filters.from, filters.to),
     lastActivityAt: range(filters.lastActivityFrom, filters.lastActivityTo)

@@ -234,17 +234,21 @@ let decodeScope = (value: unknown): OtlpScope =>
       }
     : { name: '', version: '', attributes: emptyAttributes() };
 
-let decodeLogRecord = (value: Json): OtlpLogRecord => ({
-  timeNs: nanosOf(pick(value, 'timeUnixNano')),
-  observedTimeNs: nanosOf(pick(value, 'observedTimeUnixNano')),
-  severityNumber: enumOf(pick(value, 'severityNumber'), severityNames),
-  severityText: asString(pick(value, 'severityText')),
-  eventName: asString(pick(value, 'eventName')),
-  body: decodeValue(value.body, 0),
-  attributes: decodeAttributes(value.attributes),
-  traceId: hexOf(pick(value, 'traceId')),
-  spanId: hexOf(pick(value, 'spanId'))
-});
+let decodeLogRecord = (value: Json): OtlpLogRecord => {
+  let observedTimeNs = nanosOf(pick(value, 'observedTimeUnixNano'));
+
+  return {
+    timeNs: nanosOf(pick(value, 'timeUnixNano')) || observedTimeNs,
+    observedTimeNs,
+    severityNumber: enumOf(pick(value, 'severityNumber'), severityNames),
+    severityText: asString(pick(value, 'severityText')),
+    eventName: asString(pick(value, 'eventName')),
+    body: decodeValue(value.body, 0),
+    attributes: decodeAttributes(value.attributes),
+    traceId: hexOf(pick(value, 'traceId')),
+    spanId: hexOf(pick(value, 'spanId'))
+  };
+};
 
 let decodeSpan = (value: Json): OtlpSpan => ({
   traceId: hexOf(pick(value, 'traceId')),

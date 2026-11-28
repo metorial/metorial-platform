@@ -13,14 +13,18 @@ export type Cells = Record<string, unknown>;
 
 type Labels = Record<string, { name?: string | null }>;
 
-// Without requests an amount is 0; with requests it is null only when none of them had one.
+// Without usage an amount is 0; with usage it is null only when none of it had one. Turn-level
+// usage has tokens but no requests.
 export let spendFiguresOf = (cells: Cells | null | undefined): AgentTrackingSpendFigures => {
   let row = cells ?? {};
   let requests = countOf(row.requests);
+  let tokens = tokensOf(row.tokens);
   let requestsWithoutCost = countOf(row.requests_without_cost);
   let requestsWithoutListPrice = countOf(row.requests_without_list_price);
-  let idle = requests == 0;
+  let idle = requests == 0 && tokens.total == 0;
   let amount = (value: unknown) => (idle ? (value ?? 0) : value);
+  let uncovered = (requestsWithout: number, tokensWithout: unknown) =>
+    !idle && requestsWithout >= requests && countOf(tokensWithout) >= tokens.total;
 
   return {
     cost: {
@@ -28,14 +32,14 @@ export let spendFiguresOf = (cells: Cells | null | undefined): AgentTrackingSpen
         total: amount(row['cost.usd']),
         listPrice: amount(row['cost.list']),
         reported: row['cost.reported'],
-        unpriced: !idle && requestsWithoutCost >= requests,
-        unpricedAtListPrice: !idle && requestsWithoutListPrice >= requests
+        unpriced: uncovered(requestsWithoutCost, row.tokens_without_cost),
+        unpricedAtListPrice: uncovered(requestsWithoutListPrice, row.tokens_without_list_price)
       }),
       requestsWithoutCost,
       requestsWithoutListPrice
     },
     requests,
-    tokens: tokensOf(row.tokens)
+    tokens
   };
 };
 
@@ -65,6 +69,16 @@ export let dayItem = (row: Cells): AgentTrackingSpendDay | null => {
 
 let shareOf = (value: unknown) =>
   typeof value == 'number' && Number.isFinite(value) ? value : null;
+
+// A session counts fully in each of its repositories and tickets, so their sum can exceed the
+// total spend; a share is always of the total.
+export let shareOfTotalCost = (row: Cells, totals: Cells | null | undefined) => {
+  let cost = toNanos(row['cost.usd']);
+  let total = toNanos(totals?.['cost.usd']);
+  if (cost === null || !total) return null;
+
+  return Number(cost) / Number(total);
+};
 
 export let usageItem = <Kind extends string>(
   row: Cells,

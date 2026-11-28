@@ -3,7 +3,7 @@ import { getStore, setStoreIndexMode } from '@mtsrc/agent-tracking-store';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
   createScope,
-  createToken,
+  createHookToken,
   errorCode,
   agentTracking,
   ingest,
@@ -30,7 +30,7 @@ let promptHook = (overrides: Record<string, unknown> = {}) =>
 
 describe('hook ingest', () => {
   it('stores a normalized record for a hook', async () => {
-    let { organization, project, instance, secret, token } = await createToken();
+    let { organization, project, instance, secret, token } = await createHookToken();
 
     let response = await ingest('/v1/ingest/hooks/claude-code', {
       credential: secret,
@@ -59,7 +59,7 @@ describe('hook ingest', () => {
   });
 
   it('never stores prompt text or environment fields with the default policy', async () => {
-    let { instance, secret } = await createToken();
+    let { instance, secret } = await createHookToken();
 
     await ingest('/v1/ingest/hooks/claude-code', { credential: secret, body: promptHook() });
 
@@ -71,7 +71,7 @@ describe('hook ingest', () => {
   });
 
   it('applies the content policy of the token', async () => {
-    let { instance, secret } = await createToken(
+    let { instance, secret } = await createHookToken(
       { contentPolicy: { defaultMode: 'full' } },
       await fullContentScope()
     );
@@ -86,7 +86,9 @@ describe('hook ingest', () => {
   });
 
   it('never stores more than the instance allows', async () => {
-    let { instance, secret } = await createToken({ contentPolicy: { defaultMode: 'full' } });
+    let { instance, secret } = await createHookToken({
+      contentPolicy: { defaultMode: 'full' }
+    });
 
     await ingest('/v1/ingest/hooks/claude-code', { credential: secret, body: promptHook() });
 
@@ -94,7 +96,7 @@ describe('hook ingest', () => {
   });
 
   it('picks up an updated content policy without waiting for the cache', async () => {
-    let { organization, instance, token, secret } = await createToken(
+    let { organization, instance, token, secret } = await createHookToken(
       {},
       await fullContentScope()
     );
@@ -124,7 +126,7 @@ describe('hook ingest', () => {
   });
 
   it('is idempotent for a retried event', async () => {
-    let { instance, secret } = await createToken();
+    let { instance, secret } = await createHookToken();
 
     for (let i = 0; i < 2; i++) {
       await ingest('/v1/ingest/hooks/codex', {
@@ -141,7 +143,7 @@ describe('hook ingest', () => {
   });
 
   it('accepts gzip and zstd bodies', async () => {
-    let { instance, secret } = await createToken();
+    let { instance, secret } = await createHookToken();
 
     let gzip = await ingest('/v1/ingest/hooks/claude-code', {
       credential: secret,
@@ -161,7 +163,7 @@ describe('hook ingest', () => {
   });
 
   it('rejects invalid payloads and stores nothing', async () => {
-    let { instance, secret } = await createToken();
+    let { instance, secret } = await createHookToken();
 
     for (let body of ['', '[]', 'nope', '"text"']) {
       let response = await ingest('/v1/ingest/hooks/claude-code', {
@@ -177,7 +179,7 @@ describe('hook ingest', () => {
   });
 
   it('rejects invalid clients', async () => {
-    let { secret } = await createToken();
+    let { secret } = await createHookToken();
 
     let response = await ingest('/v1/ingest/hooks/Bad%20Client!', { credential: secret });
 
@@ -186,7 +188,7 @@ describe('hook ingest', () => {
   });
 
   it('accepts unknown clients and does not store their unknown events', async () => {
-    let { instance, secret } = await createToken();
+    let { instance, secret } = await createHookToken();
 
     let response = await ingest('/v1/ingest/hooks/my-agent', {
       credential: secret,
@@ -205,7 +207,7 @@ describe('hook ingest', () => {
   });
 
   it('enforces the allowed clients of the token', async () => {
-    let { instance, secret } = await createToken({ allowedClients: ['codex'] });
+    let { instance, secret } = await createHookToken({ allowedClients: ['codex'] });
 
     let denied = await ingest('/v1/ingest/hooks/claude-code', {
       credential: secret,
@@ -218,7 +220,7 @@ describe('hook ingest', () => {
   });
 
   it('answers 503 with Retry-After while the sink is busy and recovers', async () => {
-    let { instance, secret } = await createToken();
+    let { instance, secret } = await createHookToken();
 
     await setSinkBusy(true);
 
@@ -246,8 +248,8 @@ describe('hook ingest', () => {
   });
 
   it('keeps records of different instances apart', async () => {
-    let first = await createToken();
-    let second = await createToken();
+    let first = await createHookToken();
+    let second = await createHookToken();
 
     await ingest('/v1/ingest/hooks/claude-code', {
       credential: first.secret,
@@ -269,5 +271,94 @@ describe('hook ingest', () => {
     expect(secondItems).toHaveLength(1);
     expect(secondItems[0]!.record.ingest.instance_id).toBe(second.instance.id);
     expect(secondItems[0]!.record.id).not.toBe(firstItems[0]!.record.id);
+  });
+
+  describe('organization reporting settings', () => {
+    let reportingScope = (desktop: { toolDetails: boolean; sessionContext: boolean }) =>
+      createScope({
+        organization: { settings: { desktop } },
+        instance: { settings: { contentPolicy: { defaultMode: 'full' } } }
+      });
+
+    let mcpHook = JSON.stringify({
+      session_id: 'session-mcp',
+      hook_event_name: 'PostToolUse',
+      tool_name: 'mcp__github__create_pr',
+      tool_use_id: 'toolu_mcp',
+      mcp_server: { name: 'github' },
+      tool_input: { title: sentinel },
+      tool_response: { url: sentinel }
+    });
+
+    let startHook = JSON.stringify({
+      session_id: 'session-start',
+      hook_event_name: 'SessionStart',
+      source: 'startup',
+      cwd: '/Users/someone/secret-project',
+      metorial: { git: { branch: 'feature/MT-7-notes', head: 'a'.repeat(40) } }
+    });
+
+    let tokenFor = async (desktop: { toolDetails: boolean; sessionContext: boolean }) =>
+      createHookToken(
+        { contentPolicy: { defaultMode: 'full' } },
+        await reportingScope(desktop)
+      );
+
+    it.each(['claude-code', 'codex'])(
+      'stores no MCP names or tool inputs from %s while detailed tool reporting is off',
+      async client => {
+        let { instance, secret } = await tokenFor({
+          toolDetails: false,
+          sessionContext: true
+        });
+
+        let response = await ingest(`/v1/ingest/hooks/${client}`, {
+          credential: secret,
+          body: mcpHook
+        });
+
+        let items = await instanceRecords(instance);
+
+        expect(response.status).toBe(200);
+        expect(items[0]!.record.data.tool).toEqual({
+          name: 'mcp_tool',
+          kind: 'mcp',
+          class: 'mcp'
+        });
+        expect(items[0]!.record.content).toEqual([]);
+        expect(JSON.stringify(items)).not.toMatch(/SENTINEL|github|create_pr/);
+      }
+    );
+
+    it('keeps MCP names and tool inputs while detailed tool reporting is on', async () => {
+      let { instance, secret } = await tokenFor({ toolDetails: true, sessionContext: true });
+
+      await ingest('/v1/ingest/hooks/claude-code', { credential: secret, body: mcpHook });
+
+      let [item] = await instanceRecords(instance);
+
+      expect(item!.record.data.tool).toMatchObject({
+        mcp: { server: 'github', tool: 'create_pr' }
+      });
+      expect(item!.record.content.some(entry => entry.text?.includes(sentinel))).toBe(true);
+    });
+
+    it('stores no session context while session context is off', async () => {
+      let off = await tokenFor({ toolDetails: true, sessionContext: false });
+      let on = await tokenFor({ toolDetails: true, sessionContext: true });
+
+      await ingest('/v1/ingest/hooks/claude-code', {
+        credential: off.secret,
+        body: startHook
+      });
+      await ingest('/v1/ingest/hooks/claude-code', { credential: on.secret, body: startHook });
+
+      let offItems = await instanceRecords(off.instance);
+      let onItems = await instanceRecords(on.instance);
+
+      expect(offItems.map(item => item.record.type)).toEqual(['session.start']);
+      expect(JSON.stringify(offItems)).not.toMatch(/secret-project|MT-7/);
+      expect(onItems.map(item => item.record.type)).toContain('session.context');
+    });
   });
 });

@@ -6,29 +6,25 @@ import { organizationPricingService } from '@mtsrc/agent-tracking-module-pricing
 import { createOverridePricer } from '@mtsrc/agent-tracking-module-pricing';
 import { queueSessionSettle } from '../queues/sessionSettle';
 import { recordReadbackService } from '@mtsrc/agent-tracking-module-records';
-import { getStore } from '@mtsrc/agent-tracking-store';
 import type { SessionDocument } from '@mtsrc/agent-tracking-store';
 import { isSummaryStale } from './freshness';
-import { orphanKey, type Correlation } from './keys';
-import { sessionEvents } from './records';
+import { movesSessionBounds, orphanKey, type Correlation } from './keys';
+import { sessionEvents, sessionHasMeasurements } from './records';
 import { tryRedis } from '@mtsrc/agent-tracking-redis';
 import { summaryLockKey } from './cacheKeys';
 import { aggregateSession, type SessionAggregate } from './summary';
+import { applyToolCallLinks, resolveSessionToolCallLinks } from './toolCallLinks';
+import { copySessionRepoToToolCalls } from './toolCallRepos';
 import { SUMMARY_VERSION } from '@mtsrc/agent-tracking-layers';
 import { Events } from '@mtsrc/agent-tracking-events';
+import { collections } from './collections';
 
 let summaryLockSeconds = 60;
 
-let collections = async () => {
-  let store = getStore();
-  await store.ready();
-
-  return store.collections();
-};
-
 export let computeSessionAggregate = async (
   session: SessionDocument,
-  correlationsSince?: Date
+  correlationsSince?: Date,
+  opts: { strictLinks?: boolean } = {}
 ) => {
   let [catalog, { overrides, declarations }] = await Promise.all([
     knowledgeCacheService.getKnowledge(),
@@ -39,7 +35,7 @@ export let computeSessionAggregate = async (
 
   let scope = { organizationId: session.organizationId, projectId: session.projectId };
 
-  return await aggregateSession({
+  let aggregate = await aggregateSession({
     records: await sessionEvents({
       organizationId: session.organizationId,
       sessionKey: session._id
@@ -48,8 +44,25 @@ export let computeSessionAggregate = async (
     catalog,
     pricing: createOverridePricer({ ...scope, overrides, catalog }),
     declarations: createDeclarationLookup({ ...scope, declarations }),
-    correlationsSince
+    correlationsSince,
+    hasMeasurements: () => sessionHasMeasurements(session)
   });
+
+  let resolved = await resolveSessionToolCallLinks({
+    session,
+    calls: aggregate.mcpToolCalls,
+    strict: opts.strictLinks
+  });
+
+  return {
+    ...aggregate,
+    summary: {
+      ...aggregate.summary,
+      ...(resolved.metorial ? { metorial: resolved.metorial } : {})
+    },
+    links: resolved.links,
+    staleSessionKeys: resolved.staleSessionKeys
+  };
 };
 
 // The watermark is the session's lastObservedAt read before aggregating, so records that arrive
@@ -60,7 +73,7 @@ export let storeSessionSummary = async (d: {
   watermark: Date;
 }) => {
   let { sessions } = await collections();
-  let { coverage } = d.aggregate;
+  let { coverage, empty } = d.aggregate;
 
   let set = {
     summary: d.aggregate.summary,
@@ -69,7 +82,13 @@ export let storeSessionSummary = async (d: {
     'coverage.hasContext': coverage.hasContext,
     'coverage.hasRepo': coverage.hasRepo,
     'versions.summary': SUMMARY_VERSION,
-    ...(coverage.usageSource ? { 'coverage.usageSource': coverage.usageSource } : {})
+    ...(coverage.usageSource ? { 'coverage.usageSource': coverage.usageSource } : {}),
+    ...(empty ? { empty: true } : {})
+  };
+
+  let unset = {
+    ...(coverage.usageSource ? {} : { 'coverage.usageSource': '' }),
+    ...(empty ? {} : { empty: '' })
   };
 
   await sessions.updateOne(
@@ -80,14 +99,14 @@ export let storeSessionSummary = async (d: {
         { summaryWatermark: { $lte: d.watermark } }
       ]
     },
-    {
-      $set: set,
-      ...(coverage.usageSource ? {} : { $unset: { 'coverage.usageSource': '' } })
-    } as never
+    { $set: set, ...(Object.keys(unset).length ? { $unset: unset } : {}) } as never
   );
 
+  let { empty: _empty, ...session } = d.session;
+
   return {
-    ...d.session,
+    ...session,
+    ...(empty ? { empty: true as const } : {}),
     summary: d.aggregate.summary,
     summaryWatermark: d.watermark,
     coverage: { fullyAttributed: d.session.coverage?.fullyAttributed ?? false, ...coverage },
@@ -130,7 +149,7 @@ let linkOrphans = async (session: SessionDocument, correlations: Correlation[]) 
     ? await events
         .find(
           { _id: { $in: recordIds }, ...movable },
-          { projection: { occurredAt: 1, 'ctx.sessionKey': 1 } }
+          { projection: { occurredAt: 1, 'source.role': 1, 'ctx.sessionKey': 1 } }
         )
         .toArray()
     : [];
@@ -141,15 +160,19 @@ let linkOrphans = async (session: SessionDocument, correlations: Correlation[]) 
       { $set: { 'ctx.sessionKey': session._id, 'ctx.sessionOrigin': 'linked' } }
     );
 
-    let times = records.map(record => record.occurredAt.getTime());
+    let times = records
+      .filter(record => movesSessionBounds({ origin: 'linked', role: record.source.role }))
+      .map(record => record.occurredAt.getTime());
 
-    await sessions.updateOne(
-      { _id: session._id },
-      {
-        $min: { startedAt: new Date(Math.min(...times)) },
-        $max: { lastActivityAt: new Date(Math.max(...times)) }
-      }
-    );
+    if (times.length) {
+      await sessions.updateOne(
+        { _id: session._id },
+        {
+          $min: { startedAt: new Date(Math.min(...times)) },
+          $max: { lastActivityAt: new Date(Math.max(...times)) }
+        }
+      );
+    }
 
     let previous = [
       ...new Set(
@@ -197,11 +220,13 @@ export let settleSession = async (d: { sessionKey: string }) => {
   let watermark = session.lastObservedAt;
   let previouslySettled = session.settledObservedAt;
 
-  let aggregate = await computeSessionAggregate(session, previouslySettled);
+  let aggregate = await computeSessionAggregate(session, previouslySettled, {
+    strictLinks: true
+  });
 
   if (await linkOrphans(session, aggregate.correlations)) {
     session = (await sessions.findOne({ _id: d.sessionKey })) ?? session;
-    aggregate = await computeSessionAggregate(session);
+    aggregate = await computeSessionAggregate(session, undefined, { strictLinks: true });
   }
 
   if (!aggregate.records && session.origin == 'inferred') {
@@ -211,6 +236,13 @@ export let settleSession = async (d: { sessionKey: string }) => {
   }
 
   await storeSessionSummary({ session, aggregate, watermark });
+  await applyToolCallLinks({
+    session,
+    calls: aggregate.mcpToolCalls,
+    links: aggregate.links,
+    staleSessionKeys: aggregate.staleSessionKeys
+  });
+  await copySessionRepoToToolCalls({ session, repoIds: aggregate.toolCallRepoIds });
   await attributionService.resolveSession({ sessionKey: session._id });
   await usageSliceService.writeSessionSlices({
     sessionKey: session._id,

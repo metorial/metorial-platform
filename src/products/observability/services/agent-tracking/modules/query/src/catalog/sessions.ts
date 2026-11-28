@@ -1,3 +1,4 @@
+import { listedSessionFilter } from '@mtsrc/agent-tracking-store';
 import {
   arrayField,
   billingFields,
@@ -20,6 +21,7 @@ import {
   derived,
   errorRate,
   lineMetrics,
+  max,
   sum,
   tokenMetrics
 } from './metrics';
@@ -96,7 +98,8 @@ export let sessionsDataset: DatasetDef = {
   name: 'sessions',
   collection: 'sessions',
   description:
-    'One document per session, with its summary, context, attribution and coverage.',
+    'One document per session, with its summary, context, attribution and coverage. Sessions in which nothing happened (no prompt, counted model request, turn, tool call, usage, metric, code change, commit, pull request or Desktop context) are left out.',
+  baseMatch: listedSessionFilter,
   timeField: 'startedAt',
   maxRangeDays: 400,
   maxHourlyRangeDays: 31,
@@ -148,18 +151,35 @@ export let sessionsDataset: DatasetDef = {
       'Whether the client reported the session or it was inferred.'
     ),
     ticket: arrayField('context.ticketRefs', 'string', 'Ticket references.', {
-      dimension: false,
       cardinality: 'high',
       searchable: true
     }),
     branch: stored('context.branch', 'string', 'The VCS branch.', {
-      dimension: false,
+      sensitivity: 'personal',
       cardinality: 'high',
       searchable: true
     }),
+    pull_request: arrayField(
+      'summary.pullRequestRefs.key',
+      'string',
+      'Pull requests the session opened or linked, as provider/owner/name#number.',
+      { cardinality: 'high', searchable: true }
+    ),
     'mcp.server': arrayField('summary.mcpServers', 'string', 'MCP servers used.', {
       searchable: true
     }),
+    'metorial.provider': arrayField(
+      'summary.metorial.providerIds',
+      'id',
+      'Metorial providers the session’s MCP tool calls reached.',
+      { distinct: true }
+    ),
+    'metorial.tool': arrayField(
+      'summary.metorial.toolKeys',
+      'string',
+      'Keys of the Metorial tools the session’s MCP tool calls reached. Empty for calls sent while Detailed Tool Reporting was off.',
+      { searchable: true, cardinality: 'high' }
+    ),
     'coverage.hasUsage': boolField('coverage.hasUsage', 'Whether usage data arrived.'),
     'coverage.hasContext': boolField('coverage.hasContext', 'Whether context data arrived.'),
     'coverage.hasRepo': boolField('coverage.hasRepo', 'Whether a repository is known.'),
@@ -233,13 +253,11 @@ export let sessionsDataset: DatasetDef = {
       'number',
       'Tokens per request.'
     ),
-    last_activity: {
-      kind: 'aggregate',
-      fn: 'max',
-      field: 'lastActivityAt',
-      type: 'date',
-      description: 'When any session in the group was last active.'
-    }
+    last_activity: max(
+      'lastActivityAt',
+      'date',
+      'When any session in the group was last active.'
+    )
   },
   indexes: [
     { name: 'organizationId_startedAt', keys: ['organizationId', 'startedAt'] },

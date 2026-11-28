@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { classifyTool, isShellTool, parseMcpToolName } from '../src/tools';
+import {
+  classifyTool,
+  hasMcpServer,
+  isMcpTool,
+  isShellTool,
+  parseMcpToolName
+} from '../src/tools';
 
 describe('parseMcpToolName', () => {
   it('splits server and tool on the first double underscore', () => {
@@ -49,7 +55,6 @@ describe('classifyTool', () => {
       kind: 'unknown',
       class: 'other'
     });
-    expect(classifyTool('FrobnicateWidget', { explicitKind: 'builtin' }).kind).toBe('builtin');
   });
 
   it('parses MCP names', () => {
@@ -61,21 +66,46 @@ describe('classifyTool', () => {
     });
   });
 
-  it('prefers explicit MCP hints', () => {
-    expect(classifyTool('search', { mcpServer: 'docs' })).toMatchObject({
+  it('prefers a reported MCP server', () => {
+    expect(classifyTool('search', { server: 'docs' })).toMatchObject({
       kind: 'mcp',
       mcp: { server: 'docs', tool: 'search' }
     });
-    expect(classifyTool('x', { mcpServer: 'docs', mcpTool: 'lookup' }).mcp).toEqual({
+    expect(classifyTool('x', { server: 'docs', mcpTool: 'lookup' }).mcp).toEqual({
       server: 'docs',
       tool: 'lookup'
     });
   });
 
-  it('marks explicit mcp kind without a parsed server', () => {
-    let tool = classifyTool('custom', { explicitKind: 'mcp' });
+  it.each([
+    ['custom', { namespace: 'mcp' }],
+    ['custom', { source: 'mcp' }],
+    ['custom', { server: { name: 3 } }],
+    ['lookup', { server: 'custom', client: 'claude-code' }],
+    ['mcp_tool', {}],
+    ['mcp_other', {}],
+    ['mcp__docs', {}],
+    ['mcp__docs__', {}]
+  ])('marks %s with %j as an MCP tool without a server', (name, hints) => {
+    expect(classifyTool(name, hints)).toEqual({ name, kind: 'mcp', class: 'mcp' });
+  });
 
-    expect(tool).toEqual({ name: 'custom', kind: 'mcp', class: 'mcp' });
+  it('keeps a server named custom for clients other than Claude Code', () => {
+    expect(classifyTool('lookup', { server: 'custom', client: 'codex' }).mcp).toEqual({
+      server: 'custom',
+      tool: 'lookup'
+    });
+  });
+
+  it.each([
+    ['docs__lookup', { server: 'docs', tool: 'lookup' }],
+    ['docs__look__up', { server: 'docs', tool: 'look__up' }]
+  ])('splits %s at the first double underscore into server and tool', (name, mcp) => {
+    expect(classifyTool(name)).toEqual({ name, kind: 'mcp', class: 'mcp', mcp });
+  });
+
+  it.each(['__proto__', 'foo__', '__bar'])('does not classify %s as an MCP tool', name => {
+    expect(classifyTool(name).kind).not.toBe('mcp');
   });
 
   it('strips control characters and bounds length', () => {
@@ -94,6 +124,34 @@ describe('classifyTool', () => {
       expect(tool.class).toBe('other');
     }
   );
+});
+
+describe('isMcpTool', () => {
+  it.each([
+    [{ name: 'mcp__docs__lookup' }, true],
+    [{ name: 'docs__lookup' }, true],
+    [{ name: 'mcp_tool' }, true],
+    [{ name: 'Bash', server: 'docs' }, true],
+    [{ name: 'Bash', server: '' }, false],
+    [{ name: 'Bash', server: { name: 'docs' } }, true],
+    [{ name: 'Bash', namespace: 'mcp__docs__' }, true],
+    [{ name: 'Bash', source: 'mcp' }, true],
+    [{ name: 'Bash' }, false],
+    [{ name: 'Bash', server: {} }, false],
+    [{ name: 'my_tool', namespace: 'functions' }, false],
+    [{}, false]
+  ])('reads %j as MCP: %s', (signals, expected) => {
+    expect(isMcpTool(signals)).toBe(expected);
+  });
+
+  it('treats a non-empty name or object as a reported server', () => {
+    expect(hasMcpServer('docs')).toBe(true);
+    expect(hasMcpServer('')).toBe(false);
+    expect(hasMcpServer({ name: 'docs' })).toBe(true);
+    expect(hasMcpServer({})).toBe(false);
+    expect(hasMcpServer(null)).toBe(false);
+    expect(hasMcpServer(['docs'])).toBe(false);
+  });
 });
 
 describe('isShellTool', () => {

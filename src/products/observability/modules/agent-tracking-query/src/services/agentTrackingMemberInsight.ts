@@ -9,11 +9,12 @@ import {
   normalizeInclude,
   rankMemberInsights
 } from '../lib/memberInsights';
-import { instanceConsumerMemberIds, lookupMembers, unique } from '../lib/members';
+import { unique } from '../lib/entities';
+import { instanceConsumerMemberIds, lookupMembers } from '../lib/members';
 import { pageByAnchor } from '../lib/pageByAnchor';
-import { loadVisiblePrivacy } from '../lib/privacy';
+import { loadVisibleSettings } from '../lib/privacy';
 import {
-  assertRequestRange,
+  assertRecordRange,
   lastActivityQuery,
   memberInsightsRequestsQuery,
   memberInsightsUsageQuery,
@@ -51,7 +52,7 @@ class AgentTrackingMemberInsightServiceImpl {
       flaggedOnly?: boolean;
     }
   ): Promise<AgentTrackingMemberInsights> {
-    await loadVisiblePrivacy(d);
+    await loadVisibleSettings(d);
 
     let include = normalizeInclude(d.include);
     let sort = d.sort ?? 'cost';
@@ -64,7 +65,7 @@ class AgentTrackingMemberInsightServiceImpl {
     let range = normalizeRange(d.range ?? {});
     let now = new Date();
     if (include.includes('practices') || include.includes('seat')) {
-      assertRequestRange(resolveRange(range, now), 'Practices and seat');
+      assertRecordRange(resolveRange(range, now), 'Practices and seat');
     }
 
     let data = await cachedRead({

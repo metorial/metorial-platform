@@ -10,7 +10,7 @@
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
-    "build": "tsup"
+    "build": "NODE_OPTIONS=--max-old-space-size=6144 tsup"
   },
   "files": [
     "dist"

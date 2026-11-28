@@ -1,3 +1,4 @@
+import { fullIngestPolicy } from '@mtsrc/agent-tracking-spec';
 import { describe, expect, it } from 'vitest';
 import { buildMapped } from '../build';
 import {
@@ -8,9 +9,10 @@ import {
   otlpAt,
   spanOf
 } from '@mtsrc/agent-tracking-otlp/test/otlp';
-import type { OtlpAttributes } from '@mtsrc/agent-tracking-otlp';
+import { decodeOtlp, type OtlpAttributes } from '@mtsrc/agent-tracking-otlp';
 import { groupContext } from '../../src/otlp/common';
 import { codexOtlp, codexOtlpId } from '../../src/otlp/codex';
+import { mapOtlpGroup } from '../../src/registry';
 
 let resource: OtlpAttributes = {
   'service.name': 'codex_cli_rs',
@@ -208,6 +210,33 @@ describe('codexOtlp log events', () => {
 
   it('has no outcome without a status code', () => {
     expect(one('api_request').data).toEqual({});
+  });
+
+  it('maps no api request without a session id', () => {
+    let daemonRequest = logRecord(
+      { 'event.name': 'api_request', duration_ms: 120, attempt: 1 },
+      { traceId: '0'.repeat(32), spanId: '0'.repeat(16) }
+    );
+
+    expect(
+      codexOtlp.mapLog!(ctx('logs', { 'service.name': 'codex-app-server' }), daemonRequest)
+    ).toEqual([]);
+  });
+
+  it('keeps no trace from all-zero ids and keeps a real trace', () => {
+    let zero = { traceId: '0'.repeat(32), spanId: '0'.repeat(16) };
+    let real = { traceId: '4bf92f3577b34da6a3ce929d0e0e4736', spanId: '00f067aa0ba902b7' };
+
+    expect(one('user_prompt', {}, zero).ctx).not.toHaveProperty('trace');
+    expect(one('user_prompt', {}, real).ctx?.trace).toEqual(real);
+  });
+
+  it('keeps an api request with a conversation id unchanged', () => {
+    expect(one('api_request', { 'http.response.status_code': 200 })).toMatchObject({
+      type: 'model.request',
+      role: 'supplemental',
+      ctx: { sessionId: 'conv-1', turnId: 'turn-1' }
+    });
   });
 
   it('only maps completed sse events', () => {
@@ -740,6 +769,263 @@ describe('codexOtlp spans', () => {
   });
 });
 
+// Shapes from a live codex exec 0.170.0 capture, with identities and content replaced.
+let liveAttributes = (attributes: Record<string, string | number | boolean>) =>
+  Object.entries({
+    'conversation.id': 'conv-live',
+    'app.version': '0.170.0',
+    auth_mode: 'Chatgpt',
+    originator: 'codex_exec',
+    model: 'gpt-model',
+    ...attributes
+  }).map(([key, value]) => ({
+    key,
+    value:
+      typeof value == 'string'
+        ? { stringValue: value }
+        : typeof value == 'boolean'
+          ? { boolValue: value }
+          : { intValue: String(value) }
+  }));
+
+let liveRecord = (
+  observed: string,
+  attributes: Record<string, string | number | boolean>
+) => ({
+  timeUnixNano: '0',
+  observedTimeUnixNano: observed,
+  severityNumber: 9,
+  severityText: 'INFO',
+  eventName: 'event otel/src/events/session_telemetry.rs:1187',
+  attributes: liveAttributes(attributes)
+});
+
+let mapLive = (records: unknown[]) => {
+  let body = {
+    resourceLogs: [
+      {
+        resource: {
+          attributes: [
+            { key: 'service.name', value: { stringValue: 'codex_exec' } },
+            { key: 'service.version', value: { stringValue: '0.170.0' } }
+          ]
+        },
+        scopeLogs: [{ scope: { name: 'codex_otel.log_only' }, logRecords: records }]
+      }
+    ]
+  };
+
+  let decoded = decodeOtlp('logs', 'json', new TextEncoder().encode(JSON.stringify(body)));
+  let group = decoded.groups[0]!;
+
+  return group.items.flatMap(log => codexOtlp.mapLog!(groupContext('logs', group), log));
+};
+
+let completed = (tokens: { input: string; output: string; ttft?: string }) => ({
+  'event.name': 'codex.sse_event',
+  'event.kind': 'response.completed',
+  input_token_count: tokens.input,
+  output_token_count: tokens.output,
+  cached_token_count: '0',
+  cache_write_token_count: '0',
+  reasoning_token_count: '0',
+  tool_token_count: String(Number(tokens.input) + Number(tokens.output)),
+  ...(tokens.ttft ? { ttft_ms: tokens.ttft, model_reasoning_effort: 'low' } : {}),
+  'event.timestamp': '2026-11-25T12:04:05.122Z'
+});
+
+let toolResult = (
+  seq: number,
+  tool: { name: string; namespace: string; callId: string; server?: string }
+) => ({
+  'event.name': 'codex.tool_result',
+  tool_result_seq: seq,
+  tool_name: tool.name,
+  tool_namespace: tool.namespace,
+  call_id: tool.callId,
+  duration_ms: '1',
+  success: 'true',
+  output_truncated: false,
+  agent_name: '/root',
+  arguments: '{}',
+  output: 'ok',
+  mcp_server: tool.server ?? '',
+  mcp_server_origin: tool.server ? 'stdio' : '',
+  'event.timestamp': '2026-11-25T12:04:08.569Z'
+});
+
+describe('codexOtlp live exports', () => {
+  it('gives every record its own identity although the event time is always zero', () => {
+    let mapped = mapLive([
+      liveRecord(
+        '1795608245122693000',
+        completed({ input: '23922', output: '60', ttft: '1606' })
+      ),
+      liveRecord(
+        '1795608248506066000',
+        completed({ input: '24157', output: '26', ttft: '1780' })
+      ),
+      liveRecord('1795608242265544000', {
+        'event.name': 'codex.user_prompt',
+        prompt_length: '20',
+        prompt: '[REDACTED]',
+        'event.timestamp': '2026-11-25T12:04:02.265Z'
+      }),
+      liveRecord('1795608242305851000', {
+        'event.name': 'codex.websocket_request',
+        duration_ms: '1',
+        success: 'true',
+        'event.timestamp': '2026-11-25T12:04:02.305Z'
+      }),
+      liveRecord('1795608246397127000', {
+        'event.name': 'codex.websocket_request',
+        duration_ms: '0',
+        success: 'true',
+        'event.timestamp': '2026-11-25T12:04:06.397Z'
+      })
+    ]);
+
+    let identities = mapped.map(entry => entry.draft.identity);
+
+    expect(identities).toHaveLength(5);
+    expect(new Set(identities).size).toBe(5);
+    expect(mapped[0]!.draft.occurredAt).toEqual(new Date('2026-11-25T12:04:05.122Z'));
+  });
+
+  it('keeps records apart by their timestamp and sequence when no time is sent', () => {
+    let a = one(
+      'tool_result',
+      { tool_result_seq: 1, 'event.timestamp': '2026-11-25T12:04:06.269Z' },
+      { timeNs: 0n }
+    );
+    let b = one(
+      'tool_result',
+      { tool_result_seq: 2, 'event.timestamp': '2026-11-25T12:04:06.269Z' },
+      { timeNs: 0n }
+    );
+    let c = one(
+      'user_prompt',
+      { 'event.timestamp': '2026-11-25T12:04:02.265Z' },
+      { timeNs: 0n }
+    );
+    let d = one(
+      'user_prompt',
+      { 'event.timestamp': '2026-11-25T12:04:09.000Z' },
+      { timeNs: 0n }
+    );
+
+    expect(a.identity).not.toBe(b.identity);
+    expect(c.identity).not.toBe(d.identity);
+    expect(a.coerced).toEqual([]);
+  });
+
+  it('counts a completed HTTP response once', () => {
+    let mapped = mapLive([
+      liveRecord('1795608120654198000', {
+        'event.name': 'codex.sse_event',
+        'event.kind': 'response.created',
+        duration_ms: '0'
+      }),
+      liveRecord('1795608120655431000', {
+        'event.name': 'codex.sse_event',
+        'event.kind': 'response.completed',
+        duration_ms: '0'
+      }),
+      liveRecord('1795608120655501000', completed({ input: '1200', output: '50' }))
+    ]);
+
+    expect(mapped).toHaveLength(1);
+    expect(mapped[0]!.draft).toMatchObject({
+      type: 'model.request',
+      data: { usage: { input_uncached: 1200, output: 50 } }
+    });
+    expect(mapped[0]!.draft.role).toBeUndefined();
+  });
+
+  it('keeps a real response without output counted', () => {
+    let [http, reasoned] = mapLive([
+      liveRecord('1795608120655501000', completed({ input: '1200', output: '0' })),
+      liveRecord('1795608245122693000', {
+        ...completed({ input: '2', output: '0' }),
+        model_reasoning_effort: 'low'
+      })
+    ]);
+
+    expect(http!.draft.role).toBeUndefined();
+    expect(http!.draft.data).not.toHaveProperty('warmup');
+    expect(reasoned!.draft.role).toBeUndefined();
+  });
+
+  it('keeps the websocket prewarm out of the counted requests', () => {
+    let [prewarm, request] = mapLive([
+      liveRecord('1795608241821275000', completed({ input: '2', output: '0' })),
+      liveRecord(
+        '1795608245122693000',
+        completed({ input: '23922', output: '60', ttft: '1606' })
+      )
+    ]);
+
+    expect(prewarm!.draft).toMatchObject({
+      type: 'model.request',
+      role: 'supplemental',
+      data: { purpose: 'auxiliary', warmup: true, usage: { input_uncached: 2, output: 0 } }
+    });
+    expect(request!.draft.role).toBeUndefined();
+    expect(request!.draft.data).not.toHaveProperty('warmup');
+  });
+
+  it('counts the tools a code-mode script calls, not the script wrapper', () => {
+    let mapped = mapLive([
+      liveRecord(
+        '1795608246269802000',
+        toolResult(1, { name: 'exec_command', namespace: 'functions', callId: 'exec-1' })
+      ),
+      liveRecord(
+        '1795608246311751000',
+        toolResult(2, { name: 'exec', namespace: 'functions', callId: 'call_1' })
+      ),
+      liveRecord(
+        '1795608248569888000',
+        toolResult(3, {
+          name: 'probe_echo',
+          namespace: 'mcp__probe',
+          callId: 'exec-2',
+          server: 'probe'
+        })
+      ),
+      liveRecord(
+        '1795608248591909000',
+        toolResult(4, { name: 'exec', namespace: 'functions', callId: 'call_2' })
+      )
+    ]);
+
+    let counted = mapped.filter(entry => (entry.draft.role ?? 'primary') == 'primary');
+
+    expect(counted.map(entry => entry.draft.data?.['tool'])).toEqual([
+      expect.objectContaining({ name: 'exec_command', kind: 'shell' }),
+      expect.objectContaining({ kind: 'mcp', mcp: { server: 'probe', tool: 'probe_echo' } })
+    ]);
+    expect(mapped[1]!.draft).toMatchObject({
+      type: 'tool.call',
+      role: 'supplemental',
+      factKey: 'tool:{session_key}:call_1',
+      data: { code_mode: 'wrapper' }
+    });
+  });
+
+  it('counts a code-mode script that failed', () => {
+    let [failed] = mapLive([
+      liveRecord('1795608246311751000', {
+        ...toolResult(2, { name: 'exec', namespace: 'functions', callId: 'call_1' }),
+        success: 'false'
+      })
+    ]);
+
+    expect(failed!.draft.role).toBeUndefined();
+    expect(failed!.draft.data).toMatchObject({ outcome: 'error', code_mode: 'wrapper' });
+  });
+});
+
 describe('codexOtlp through buildRecord', () => {
   it('builds valid records for logs, metrics and spans', () => {
     let mapped = [
@@ -753,5 +1039,74 @@ describe('codexOtlp through buildRecord', () => {
 
       expect(record.source.adapter).toBe('codex');
     }
+  });
+});
+
+describe('codexOtlp with tool details off', () => {
+  let noToolDetails = { toolDetails: false, sessionContext: true };
+
+  let mcpResult = () =>
+    logRecord({
+      'event.name': 'codex.tool_result',
+      'conversation.id': 'conv-1',
+      call_id: 'call-1',
+      tool_name: 'probe_echo',
+      tool_namespace: 'mcp__probe',
+      mcp_server: 'probe',
+      mcp_server_origin: 'stdio',
+      arguments: '{"text":"SENTINEL-args"}',
+      output: 'SENTINEL-output',
+      success: 'true',
+      duration_ms: '1'
+    });
+
+  it('stores MCP tool calls without arguments, output or names', () => {
+    let { mapped } = mapOtlpGroup('logs', groupOf([mcpResult()], resource), noToolDetails);
+    let [call] = mapped;
+
+    expect(mapped).toHaveLength(1);
+    expect(call!.draft).toMatchObject({
+      type: 'tool.call',
+      factKey: 'tool:{session_key}:call-1',
+      content: [],
+      data: { tool: { name: 'mcp_tool', kind: 'mcp', class: 'mcp' }, outcome: 'ok' }
+    });
+    expect(JSON.stringify(mapped)).not.toMatch(/SENTINEL|probe/);
+  });
+
+  it('keeps arguments, output and names with detailed tool reporting on', () => {
+    let { mapped } = mapOtlpGroup('logs', groupOf([mcpResult()], resource), fullIngestPolicy);
+
+    expect(mapped[0]!.draft.data?.['tool']).toMatchObject({
+      name: 'probe_echo',
+      mcp: { server: 'probe', tool: 'probe_echo' }
+    });
+    expect(mapped[0]!.draft.content).toHaveLength(2);
+  });
+
+  it('stores MCP spans without server or tool names', () => {
+    let { mapped } = mapOtlpGroup(
+      'traces',
+      groupOf(
+        [
+          spanOf('mcp.tools.call', {
+            'conversation.id': 'conv-1',
+            'mcp.server.name': 'probe',
+            'mcp.server.origin': 'stdio',
+            'tool.name': 'probe_echo',
+            'tool.call_id': 'call-1'
+          })
+        ],
+        resource
+      ),
+      noToolDetails
+    );
+
+    expect(mapped[0]!.draft.data?.['tool']).toEqual({
+      name: 'mcp_tool',
+      kind: 'mcp',
+      class: 'mcp'
+    });
+    expect(JSON.stringify(mapped)).not.toContain('probe');
   });
 });

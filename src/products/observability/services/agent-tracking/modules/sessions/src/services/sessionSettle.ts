@@ -16,7 +16,9 @@ class SessionSettleServiceImpl {
   // Rebuilds the summary and slices from the stored records without touching attribution or the
   // settle watermark. Returns false when the session has no records left to aggregate.
   async resummarize(d: { session: SessionDocument }) {
-    let aggregate = await computeSessionAggregate(d.session);
+    let aggregate = await computeSessionAggregate(d.session, undefined, {
+      strictLinks: true
+    });
     if (!aggregate.records) return false;
 
     await storeSessionSummary({

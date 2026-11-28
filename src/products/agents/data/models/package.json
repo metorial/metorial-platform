@@ -5,13 +5,20 @@
   "license": "FSL-1.1",
   "type": "module",
   "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./detection": "./src/detection.ts",
+    "./src/*": "./src/*.ts"
+  },
   "files": [
     "src/**",
     "overrides/**",
+    "detection.json",
     "package.json"
   ],
   "scripts": {
     "generate": "bun src/cli.ts",
+    "detection": "bun src/detectionCli.ts",
     "reconcile": "bun src/reconcile/cli.ts",
     "site": "bun src/publish/cli.ts",
     "restore-previous": "bun src/publish/previousCli.ts",

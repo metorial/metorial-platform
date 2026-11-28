@@ -32,7 +32,7 @@ let spendRangeHighlight = {
   defaultValue: defaultAgentTrackingRange
 } as const;
 
-export let spendRangeFilter = f.select('range', 'Range', agentTrackingRangePresets, {
+export let agentTrackingRangeFilter = f.select('range', 'Range', agentTrackingRangePresets, {
   highlight: spendRangeHighlight
 });
 

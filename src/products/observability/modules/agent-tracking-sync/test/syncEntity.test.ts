@@ -19,6 +19,11 @@ vi.mock('../src/lib/client', async () => (await import('./_mocks')).clientModule
 
 vi.mock('../src/lib/flag', async () => (await import('./_mocks')).flagModule);
 
+vi.mock(
+  '@metorial/module-consumer-core',
+  async () => (await import('./_mocks')).consumerCoreModule
+);
+
 import { db } from '@metorial/db';
 import {
   backfillSyncEntityQueue,
@@ -26,7 +31,7 @@ import {
   syncEntityQueueProcessor
 } from '../src/queues/syncEntity';
 import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { links, mocks, resetMocks } from './_mocks';
+import { links, mocks, resetMocks, staleCutoff } from './_mocks';
 
 mocks.agentTracking = {
   organization: { upsert: vi.fn(async () => ({ id: 'org_1' })) },
@@ -80,6 +85,8 @@ let createDevice = (overrides: Record<string, any> = {}) => ({
     { name: 'Claude Code', mcpClientType: { key: 'claude-code' } },
     { name: 'Cursor', mcpClientType: { key: 'cursor' } }
   ],
+  detections: [],
+  detectionReportedAt: new Date(),
   ...overrides
 });
 
@@ -217,6 +224,58 @@ describe('agent-tracking/sync/entity', () => {
       reach: 'from_now'
     });
     expect(mocks.agentTracking.entity.archive).not.toHaveBeenCalled();
+  });
+
+  it('upserts the agents detected on a device once, next to its configured clients', async () => {
+    vi.mocked(db.consumerDevice.findUnique).mockResolvedValue(
+      createDevice({
+        detections: [{ toolKey: 'cursor' }, { toolKey: 'ollama' }, { toolKey: 'retired-tool' }]
+      }) as any
+    );
+
+    await run({ type: 'device', id: 'codv_1' });
+
+    let agents = mocks.agentTracking.entity.upsert.mock.calls
+      .map(([input]) => input)
+      .filter(input => input.kind == 'agent')
+      .map(input => [input.ref, input.name]);
+    expect(agents).toEqual([
+      ['claude-code', 'Claude Code'],
+      ['cursor', 'Cursor'],
+      ['ollama', 'Ollama']
+    ]);
+  });
+
+  it('leaves detected agents out while detection is not active', async () => {
+    mocks.aiToolDetection.value = false;
+    vi.mocked(db.consumerDevice.findUnique).mockResolvedValue(
+      createDevice({ detections: [{ toolKey: 'ollama' }] }) as any
+    );
+
+    await run({ type: 'device', id: 'codv_1' });
+
+    let agents = mocks.agentTracking.entity.upsert.mock.calls
+      .map(([input]) => input)
+      .filter(input => input.kind == 'agent')
+      .map(input => input.ref);
+    expect(agents).toEqual(['claude-code', 'cursor']);
+  });
+
+  it('only loads detections from reports that are not stale', async () => {
+    vi.mocked(db.consumerDevice.findUnique).mockResolvedValue(createDevice() as any);
+
+    await run({ type: 'device', id: 'codv_1' });
+
+    expect(vi.mocked(db.consumerDevice.findUnique).mock.calls[0]![0]).toMatchObject({
+      include: {
+        detections: {
+          where: {
+            goneAt: null,
+            consumerDevice: { detectionReportedAt: { gte: staleCutoff } }
+          }
+        }
+      }
+    });
   });
 
   it('archives the entity of an ended device', async () => {

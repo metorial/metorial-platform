@@ -1,7 +1,8 @@
 import { v } from '@lowerdeck/validation';
-import { ConsumerDeviceStatus } from '@metorial/db';
+import { ConsumerDeviceConnectionMode, ConsumerDeviceStatus } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { consumerDeviceType } from '../../types';
+import { deviceDetectionSchema, presentDeviceDetection } from './consumerDeviceDetection';
 
 export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
   .presenter(async ({ consumerDevice }) => ({
@@ -29,6 +30,10 @@ export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
       ),
       excluded_skill_ids: client.excludedSkills.map(exclusion => exclusion.skill.id)
     })),
+
+    detections: consumerDevice.detections.map(detection =>
+      presentDeviceDetection(detection, consumerDevice)
+    ),
 
     last_seen_at: consumerDevice.lastSeenAt,
     revoked_at: consumerDevice.revokedAt,
@@ -118,6 +123,11 @@ export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
           description: 'The AI tools the device reported, with what each one receives.'
         }
       ),
+      detections: v.array(deviceDetectionSchema, {
+        name: 'detections',
+        description:
+          'AI tools found on the device by its latest detection report. Always empty while AI tool detection is off for the instance or not available to the organization; turning it off deletes what devices reported.'
+      }),
       last_seen_at: v.date({
         name: 'last_seen_at',
         description: 'When the device last checked in.'
@@ -138,10 +148,10 @@ export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
   .build();
 
 export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType)
-  .presenter(async ({ consumerDevice, telemetry }, opts) => {
-    if (!telemetry) {
+  .presenter(async ({ consumerDevice, telemetry, monitor, install }, opts) => {
+    if (!telemetry || !monitor || !install) {
       throw new Error(
-        'The consumer device presenter needs the telemetry state of the device.'
+        'The consumer device presenter needs the telemetry state, monitor settings and install settings of the device.'
       );
     }
 
@@ -151,7 +161,27 @@ export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType
       ...inner,
       telemetry: {
         enabled: telemetry.enabled,
-        token_id: telemetry.tokenId
+        token_id: telemetry.tokenId,
+        tool_details: telemetry.toolDetails,
+        session_context: telemetry.sessionContext,
+        session_titles: telemetry.sessionTitles,
+        history_import: telemetry.historyImport,
+        history_import_days: telemetry.historyImportDays
+      },
+      monitor: {
+        ai_tool_detection: monitor.aiToolDetection,
+        catalog_version: monitor.catalogVersion,
+        intervals: {
+          config_dirs: monitor.intervals.config_dirs,
+          apps: monitor.intervals.apps,
+          binaries: monitor.intervals.binaries,
+          ide_extensions: monitor.intervals.ide_extensions,
+          processes: monitor.intervals.processes,
+          report: monitor.intervals.report
+        }
+      },
+      install: {
+        connection_mode: install.connectionMode
       }
     };
   })
@@ -171,11 +201,103 @@ export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType
               description:
                 'The ID of the active telemetry token of the device, the `token_id` the telemetry token endpoint returned. Null when the device has no active token or telemetry is not collected. When it differs from the token the device holds, that token no longer works.'
             })
-          )
+          ),
+          tool_details: v.boolean({
+            name: 'tool_details',
+            description:
+              'The organization turned on detailed tool reporting: Metorial Desktop has AI tools send tool inputs, file paths and commands. `false` while telemetry is not collected.'
+          }),
+          session_context: v.boolean({
+            name: 'session_context',
+            description:
+              'The organization turned on session context: Metorial Desktop reports the repository, branch, commits, pull requests and ticket keys of sessions. `false` while telemetry is not collected.'
+          }),
+          session_titles: v.boolean({
+            name: 'session_titles',
+            description:
+              'The organization turned on session titles: Metorial Desktop reports the titles the AI tools give sessions. `false` while telemetry is not collected.'
+          }),
+          history_import: v.boolean({
+            name: 'history_import',
+            description:
+              'The organization turned on history import: Metorial Desktop imports agent sessions from the session files the AI tools kept before it was installed. `false` while telemetry is not collected.'
+          }),
+          history_import_days: v.number({
+            name: 'history_import_days',
+            description:
+              "How many days back Metorial Desktop imports session files: the organization's setting, or the project's record retention when that is shorter.",
+            examples: [90]
+          })
         },
         {
           name: 'telemetry',
           description: 'Whether the device sends agent telemetry, and with which token.'
+        }
+      ),
+      monitor: v.object(
+        {
+          ai_tool_detection: v.boolean({
+            name: 'ai_tool_detection',
+            description:
+              'Whether the device looks for AI tools and reports them. When `false`, Metorial Desktop stops collecting and discards unsent reports.'
+          }),
+          catalog_version: v.string({
+            name: 'catalog_version',
+            description:
+              'Current version of the detection catalog. The device fetches the catalog again when its copy has another version.',
+            examples: ['5b8e7bd62ccb7f44']
+          }),
+          intervals: v.object(
+            {
+              config_dirs: v.number({
+                name: 'config_dirs',
+                description: 'How often to check config folders, in seconds.'
+              }),
+              apps: v.number({
+                name: 'apps',
+                description: 'How often to check installed apps, in seconds.'
+              }),
+              binaries: v.number({
+                name: 'binaries',
+                description: 'How often to check executables on the `PATH`, in seconds.'
+              }),
+              ide_extensions: v.number({
+                name: 'ide_extensions',
+                description: 'How often to check editor extensions, in seconds.'
+              }),
+              processes: v.number({
+                name: 'processes',
+                description: 'How often to check running processes, in seconds.'
+              }),
+              report: v.number({
+                name: 'report',
+                description:
+                  'Longest time between two reports, in seconds. The device also reports as soon as what it finds changes.'
+              })
+            },
+            {
+              name: 'intervals',
+              description: 'How often the device collects each kind of signal.'
+            }
+          )
+        },
+        {
+          name: 'monitor',
+          description: 'What the device monitors, as set by the organization.'
+        }
+      ),
+      install: v.object(
+        {
+          connection_mode: v.enumOf(Object.values(ConsumerDeviceConnectionMode), {
+            name: 'connection_mode',
+            description:
+              'How AI tools connect to integrations the device installs from now on. `local_proxy` relays through Metorial Desktop; `direct` writes the integration URL and its secret into the AI tool’s config file.'
+          })
+        },
+        {
+          name: 'install',
+          description:
+            'How the device installs integrations into AI tools, as set by the organization.'
         }
       )
     }) as any

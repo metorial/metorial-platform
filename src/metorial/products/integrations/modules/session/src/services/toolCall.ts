@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { createLock } from '@lowerdeck/lock';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -40,7 +40,8 @@ import { getProviderTenantFilter } from '@metorial-subspace/module-catalog';
 import { searchRelatedEntities, whenRelatedMatched } from '@metorial-subspace/module-search';
 import {
   SenderManager,
-  TOOL_CALL_PAYLOAD_TOO_LARGE_CODE
+  TOOL_CALL_PAYLOAD_TOO_LARGE_CODE,
+  type ToolCallClientSource
 } from '@metorial-subspace/module-connection';
 import {
   getMetorialSolution,
@@ -61,6 +62,8 @@ import {
   getSessionVisibilityWhere,
   type SessionVisibilityWhere
 } from '../lib/sessionVisibility';
+
+export let maxClientCallIds = 200;
 
 let include = {
   attachments: true,
@@ -100,6 +103,10 @@ export type ListToolCallsParams = {
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
 
+  clientCallIds?: string[];
+  clientCallSource?: ToolCallClientSource;
+  omitBodies?: boolean;
+
   search?: string;
   searchActorIds?: string[];
 };
@@ -128,7 +135,7 @@ export type CreateInternalToolCallParams = CreateToolCallParams & {
 class toolCallServiceImpl {
   async enrichToolCalls<T extends ToolCall & { attachments?: ToolCallAttachment[] }>(
     toolCalls: T[],
-    opts: { bodyLimitBytes: number }
+    opts: { bodyLimitBytes: number } | undefined
   ) {
     let messageOids = toolCalls.map(tc => tc.messageOid).filter(Boolean);
     let messages = await sessionMessageService.enrichMessages(
@@ -194,6 +201,15 @@ class toolCallServiceImpl {
       sessionVisibility?: SessionVisibilityWhere;
     } & ListToolCallsParams
   ) {
+    let clientCallIds = d.clientCallIds ? [...new Set(d.clientCallIds)] : undefined;
+    if (clientCallIds && clientCallIds.length > maxClientCallIds) {
+      throw new ServiceError(
+        badRequestError({
+          message: `At most ${maxClientCallIds} client call ids can be looked up at once`
+        })
+      );
+    }
+
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
 
@@ -304,6 +320,9 @@ class toolCallServiceImpl {
                   }
                 : undefined!,
 
+              clientCallIds ? { clientCallId: { in: clientCallIds } } : undefined!,
+              d.clientCallSource ? { clientCallSource: d.clientCallSource } : undefined!,
+
               sessionTemplates
                 ? {
                     session: {
@@ -341,7 +360,10 @@ class toolCallServiceImpl {
           include
         });
 
-        return await this.enrichToolCalls(res, { bodyLimitBytes: LIST_PAYLOAD_LIMIT_BYTES });
+        return await this.enrichToolCalls(
+          res,
+          d.omitBodies ? undefined : { bodyLimitBytes: LIST_PAYLOAD_LIMIT_BYTES }
+        );
       })
     );
   }

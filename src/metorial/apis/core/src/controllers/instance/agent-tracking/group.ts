@@ -1,6 +1,7 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup } from '../../../middleware/instanceGroup';
+import { withIntegrationsAccess } from '../../../middleware/integrationsAccess';
 import { requireAgentTrackingEnabled } from '../../../middleware/requireAgentTrackingEnabled';
 
 export let agentTrackingInstanceGroup = instanceGroup
@@ -12,4 +13,5 @@ export let agentTrackingInstanceGroup = instanceGroup
     }
   })
   .use(requireAgentTrackingEnabled())
-  .use(checkAccess({ possibleScopes: ['instance.agent_tracking:read'] }));
+  .use(checkAccess({ possibleScopes: ['instance.agent_tracking:read'] }))
+  .use(withIntegrationsAccess());

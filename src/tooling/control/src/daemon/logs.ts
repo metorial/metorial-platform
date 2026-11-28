@@ -1,5 +1,6 @@
-import { appendFileSync, mkdirSync, renameSync, statSync } from 'node:fs';
+import { appendFileSync, lstatSync, mkdirSync, renameSync, truncateSync } from 'node:fs';
 import { join } from 'node:path';
+import { logMaxBytes } from './home';
 
 export interface LogLine {
   seq: number;
@@ -12,16 +13,17 @@ export interface LogLine {
 export let replayLines = 1000;
 export let logFileName = (unit: string) => `${unit.replace(/[^a-zA-Z0-9_.-]/g, '_')}.log`;
 
-let maxFileBytes = 20 * 1024 * 1024;
-
 export class LogStore {
   private seq = 0;
   private rings = new Map<string, LogLine[]>();
   private pending = new Map<string, string>();
   private listeners = new Set<(line: LogLine) => void>();
-  private files = new Set<string>();
+  private sizes = new Map<string, number>();
 
-  constructor(private directory?: string) {
+  constructor(
+    private directory?: string,
+    private maxBytes = logMaxBytes()
+  ) {
     if (directory) mkdirSync(directory, { recursive: true });
   }
 
@@ -61,16 +63,42 @@ export class LogStore {
   private write(line: LogLine) {
     if (!this.directory) return;
     let file = join(this.directory, logFileName(line.unit));
+    let entry = `${new Date(line.ts).toISOString()} ${line.stream} ${line.text}\n`;
+    let bytes = Buffer.byteLength(entry);
+
+    let cached = this.sizes.get(file);
+    let size =
+      cached === undefined || cached + bytes > this.maxBytes
+        ? this.rotate(file, bytes)
+        : cached;
+    if (size === null) return;
 
     try {
-      if (!this.files.has(file)) {
-        this.files.add(file);
-        try {
-          if (statSync(file).size > maxFileBytes) renameSync(file, `${file}.1`);
-        } catch {}
-      }
-      appendFileSync(file, `${new Date(line.ts).toISOString()} ${line.stream} ${line.text}\n`);
+      appendFileSync(file, entry);
+      size += bytes;
     } catch {}
+    this.sizes.set(file, size);
+  }
+
+  private rotate(file: string, bytes: number) {
+    let stat;
+    try {
+      stat = lstatSync(file);
+    } catch {
+      return 0;
+    }
+    if (!stat.isFile()) return null;
+    if (!stat.size || stat.size + bytes <= this.maxBytes) return stat.size;
+
+    try {
+      renameSync(file, `${file}.1`);
+    } catch {
+      try {
+        truncateSync(file);
+      } catch {}
+    }
+
+    return 0;
   }
 
   query(options: { units?: string[]; tail?: number; since?: number } = {}) {

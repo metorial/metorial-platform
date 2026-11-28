@@ -13,11 +13,22 @@ let previousPeriodLabels: Record<string, string> = {
 
 type SpendCounts = { sessions: number; members: number; capped: boolean } | null;
 
-export type BreakdownGroup = 'model' | 'client' | 'member';
+export type BreakdownGroup =
+  'model' | 'client' | 'member' | 'repository' | 'branch' | 'ticket';
+
+let breakdownOthersLabels: Partial<Record<BreakdownGroup, string>> = {
+  model: 'Other Models',
+  client: 'Other Clients',
+  repository: 'Other Repositories',
+  branch: 'Other Branches',
+  ticket: 'Other Tickets'
+};
 
 export let unknownModelLabel = 'Unknown Model';
 
 export let unknownClientLabel = 'Unknown Client';
+
+export let unknownRepositoryLabel = 'Unknown Repository';
 
 export let hiddenCountsNotice =
   'Sessions and Active Members are not shown, as distinct counts cannot be limited to the days shown.';
@@ -54,11 +65,9 @@ export let breakdownOthersCount = (
     : null;
 };
 
-export let breakdownOthersLabel = (group: BreakdownGroup, others: number | null) => {
-  if (group == 'model') return 'Other Models';
-  if (group == 'client') return 'Other Clients';
-  return others ? `${formatNumber(others)} Others` : 'Everyone Else';
-};
+export let breakdownOthersLabel = (group: BreakdownGroup, others: number | null) =>
+  breakdownOthersLabels[group] ??
+  (others ? `${formatNumber(others)} Others` : 'Everyone Else');
 
 export let costChange = (current: number | null, previous: number | null) => {
   if (current === null || previous === null || previous == 0) return null;

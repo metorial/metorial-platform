@@ -53,6 +53,8 @@ model OrganizationActor {
   auditLogs                  AuditLog[]
   events                     AuditLogEvent[]
   createdAgentTrackingViews  AgentTrackingView[]
+  aiToolPolicyDecisions      AiToolPolicy[]
+  consumerDeviceSettings     ConsumerDeviceSettings[]
 
   @@unique([isSystem, organizationOid])
 }

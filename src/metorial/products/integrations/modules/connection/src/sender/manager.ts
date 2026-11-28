@@ -90,6 +90,7 @@ import {
   resolveCallbackEventToolScope,
   runCallbackEventTool
 } from '../lib/callbackEventTools';
+import type { ClientCall } from '../lib/clientCall';
 import { conduit } from '../lib/conduit';
 import {
   buildConnectionFailedDetail,
@@ -207,6 +208,7 @@ export interface CallToolProps {
   rationale?: string;
   operation?: string;
   clientMcpId?: PrismaJson.SessionMessageClientMcpId;
+  clientCall?: ClientCall | null;
   parentMessage?: SessionMessage;
 }
 
@@ -2058,6 +2060,7 @@ export class SenderManager {
       operation: extractedToolCall.operation,
       senderParticipant: participant,
       clientMcpId: d.clientMcpId,
+      clientCall: d.clientCall,
       transport: d.transport,
       tool,
       isProductive: true,

@@ -1,3 +1,5 @@
+export * from './aiTool';
+export * from './aiToolDetection';
 export * from './consumer';
 export * from './consumerAccess';
 export * from './consumerAccessListing';
@@ -5,6 +7,8 @@ export * from './consumerAccessRequest';
 export * from './consumerActivity';
 export * from './consumerAndProfile';
 export * from './consumerDevice';
+export * from './consumerDeviceDetection';
+export * from './consumerDeviceSettings';
 export * from './consumerDeviceTelemetryToken';
 export * from './consumerGroup';
 export * from './consumerInvite';

@@ -1,3 +1,5 @@
+import { unsafeTextPattern } from '@mtsrc/agent-tracking-spec';
+
 export type TokenUsage = {
   input_uncached?: number;
   cache_read?: number;
@@ -63,10 +65,12 @@ export let own = <T>(table: Record<string, T>, key: string | undefined): T | und
   key !== undefined && Object.hasOwn(table, key) ? table[key] : undefined;
 
 let maxNativeLength = 64;
+let maxBranchLength = 256;
 
 export type UsageInput = {
   inputUncached?: number;
   inputIncludingCache?: number;
+  inputIncludingCacheReadsAndWrites?: number;
   cacheRead?: number;
   cacheWrite?: number;
   cacheWrite5m?: number;
@@ -92,11 +96,18 @@ export let buildUsage = (input: UsageInput): UsageResult => {
 
   let inputUncached = input.inputUncached;
 
-  if (inputUncached === undefined && input.inputIncludingCache !== undefined) {
-    let remainder = input.inputIncludingCache - (input.cacheRead ?? 0);
+  let inputRemainder =
+    input.inputIncludingCache !== undefined
+      ? input.inputIncludingCache - (input.cacheRead ?? 0)
+      : input.inputIncludingCacheReadsAndWrites !== undefined
+        ? input.inputIncludingCacheReadsAndWrites -
+          (input.cacheRead ?? 0) -
+          (input.cacheWrite ?? 0)
+        : undefined;
 
-    if (remainder >= 0) {
-      inputUncached = remainder;
+  if (inputUncached === undefined && inputRemainder !== undefined) {
+    if (inputRemainder >= 0) {
+      inputUncached = inputRemainder;
       derived.push('usage.input_uncached');
     } else {
       warnings.push('usage_negative:input_uncached');
@@ -214,6 +225,20 @@ export let nativeLabel = (value: unknown): string | undefined => {
 
   return trimmed.length > maxNativeLength ? trimmed.slice(0, maxNativeLength) : trimmed;
 };
+
+export let cleanText = (value: string | undefined, maxLength: number) => {
+  let text = value?.replace(/[\u0000-\u001f\u007f]/g, '').trim();
+
+  return text && text.length <= maxLength && !unsafeTextPattern.test(text) ? text : undefined;
+};
+
+export let cleanHex = (value: string | undefined, pattern: RegExp) => {
+  let hex = value?.trim().toLowerCase();
+
+  return hex && pattern.test(hex) ? hex : undefined;
+};
+
+export let cleanBranch = (value: string | undefined) => cleanText(value, maxBranchLength);
 
 export let errorFromStatus = (
   status: number | undefined,

@@ -1,14 +1,20 @@
 import type { Decimal, Tokens } from '@mtsrc/agent-tracking-cost';
-import type { BillingMode, BillingSource } from '@mtsrc/agent-tracking-spec';
+import type {
+  BillingMode,
+  BillingSource,
+  VcsPullRequestKind
+} from '@mtsrc/agent-tracking-spec';
 import mongoose from 'mongoose';
 import type { TagOrigin } from '@mtsrc/agent-tracking-spec';
 import { type VendorSource } from '@mtsrc/agent-tracking-model-resolver';
+import type { RecordMetorialLink } from './models';
 
 export let derivedCollectionNames = {
   sessions: 'sessions',
   sessionLinks: 'session_links',
   usageSlices: 'usage_slices',
-  sourceHealth: 'source_health'
+  sourceHealth: 'source_health',
+  toolCallLinks: 'tool_call_links'
 } as const;
 
 export type ReportedCost = {
@@ -87,6 +93,21 @@ export type SessionModelSummary = {
   costContractUsd?: Decimal;
 };
 
+export type SessionCommitRef = {
+  sha: string;
+  at: Date;
+  branch?: string;
+  ticketRefs?: string[];
+};
+
+export type SessionPullRequestRef = {
+  key: string;
+  provider: string;
+  repository: string;
+  number: number;
+  kind: VcsPullRequestKind;
+};
+
 export type SessionSummary = {
   durationMs: number;
   turns: number;
@@ -107,8 +128,11 @@ export type SessionSummary = {
   lines: { added: number; removed: number };
   commits: number;
   pullRequests: number;
+  commitRefs?: SessionCommitRef[];
+  pullRequestRefs?: SessionPullRequestRef[];
   errorsByClass: Record<string, number>;
   compactions: number;
+  metorial?: { providerIds: string[]; toolKeys: string[] };
 };
 
 export type SessionCoverage = {
@@ -154,6 +178,11 @@ export type SessionDocument = {
     repoIds: string[];
     branch?: string;
     head?: string;
+    defaultBranch?: string;
+    worktree?: boolean;
+    subPath?: string;
+    permissionMode?: string;
+    title?: string;
     ticketRefs: string[];
     tags: SessionTag[];
     pathStored: boolean;
@@ -175,11 +204,14 @@ export type SessionDocument = {
   settledObservedAt?: Date;
   settlePending?: true;
   frozen?: true;
+  empty?: true;
   coverage?: SessionCoverage;
   classification?: SessionClassification;
 
   expiresAt: Date;
 };
+
+export let listedSessionFilter = { empty: { $ne: true as const } };
 
 // `<instanceId>:<type>:<value>` maps a correlation id to its session. `orphan:<…same…>` lists
 // records that carried the correlation id before any session claimed it; settling links them.
@@ -188,6 +220,23 @@ export type SessionLinkDocument = {
   instanceId: string;
   sessionKey?: string;
   recordIds?: string[];
+  expiresAt: Date;
+};
+
+export type ToolCallLinkTarget = RecordMetorialLink;
+
+// `<instanceId>:<clientFamily>:<toolCallId>` holds the Metorial tool call an agent's tool call
+// reached. When two Metorial calls claim one pair it is kept as a conflict without a target.
+export type ToolCallLinkDocument = {
+  _id: string;
+  organizationId: string;
+  projectId: string;
+  instanceId: string;
+  clientFamily: string;
+  toolCallId: string;
+  metorial?: ToolCallLinkTarget & { calledAt: Date };
+  conflict?: true;
+  createdAt: Date;
   expiresAt: Date;
 };
 
@@ -210,6 +259,8 @@ export type UsageSliceDocument = {
   subagentId?: string;
   workspaceIds: string[];
   repoIds: string[];
+  branch?: string;
+  ticketRefs: string[];
   dims: SliceDim[];
   dimIds: string[];
 
@@ -284,6 +335,19 @@ SessionSchema.index({ organizationId: 1, 'observed.agentId': 1, startedAt: -1 })
 SessionSchema.index({ organizationId: 1, lastActivityAt: -1, _id: -1 });
 SessionSchema.index({ organizationId: 1, instanceId: 1, lastActivityAt: -1, _id: -1 });
 SessionSchema.index({ organizationId: 1, 'observed.userId': 1, lastActivityAt: -1, _id: -1 });
+SessionSchema.index({ organizationId: 1, 'context.repoIds': 1, lastActivityAt: -1, _id: -1 });
+SessionSchema.index({
+  organizationId: 1,
+  'context.ticketRefs': 1,
+  lastActivityAt: -1,
+  _id: -1
+});
+SessionSchema.index({
+  organizationId: 1,
+  'summary.metorial.providerIds': 1,
+  lastActivityAt: -1,
+  _id: -1
+});
 SessionSchema.index({ organizationId: 1, state: 1, lastActivityAt: 1 });
 SessionSchema.index({ state: 1, lastActivityAt: 1 });
 SessionSchema.index(
@@ -330,3 +394,11 @@ export let SourceHealthSchema = new mongoose.Schema<SourceHealthDocument>(
 );
 
 SourceHealthSchema.index({ organizationId: 1, instanceId: 1, updatedAt: -1 });
+
+export let ToolCallLinkSchema = new mongoose.Schema<ToolCallLinkDocument>(
+  { _id: String, organizationId: String, instanceId: String },
+  schemaOptions
+);
+
+ToolCallLinkSchema.index({ organizationId: 1, instanceId: 1 });
+ToolCallLinkSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });

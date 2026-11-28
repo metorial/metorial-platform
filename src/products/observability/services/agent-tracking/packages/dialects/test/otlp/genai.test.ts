@@ -1,4 +1,6 @@
+import { fullIngestPolicy } from '@mtsrc/agent-tracking-spec';
 import { describe, expect, it } from 'vitest';
+import type { OtlpAttributes } from '@mtsrc/agent-tracking-otlp';
 import { buildMapped } from '../build';
 import {
   groupOf,
@@ -9,6 +11,7 @@ import {
 } from '@mtsrc/agent-tracking-otlp/test/otlp';
 import { genAiOtlp, genAiOtlpId } from '../../src/otlp/genai';
 import { groupContext } from '../../src/otlp/common';
+import { mapOtlpGroup } from '../../src/registry';
 
 let resource = { 'service.name': 'my-agent', 'service.version': '3.1.4' };
 
@@ -194,6 +197,44 @@ describe('genAiOtlp.mapSpan model requests', () => {
   });
 });
 
+describe('genAiOtlp client family', () => {
+  let familyOf = (serviceName: string | undefined) => {
+    let attributes: OtlpAttributes =
+      serviceName === undefined ? {} : { 'service.name': serviceName };
+    let span = spanOf('chat m', { 'gen_ai.operation.name': 'chat' } as never);
+    let log = logRecord({ 'event.name': 'gen_ai.x' });
+    let point = metricPoint('gen_ai.client.token.usage', 1, {
+      'gen_ai.token.type': 'input'
+    } as never);
+
+    let families = [
+      genAiOtlp.mapSpan!(groupContext('traces', groupOf([span], attributes)), span),
+      genAiOtlp.mapLog!(groupContext('logs', groupOf([log], attributes)), log),
+      genAiOtlp.mapMetric!(groupContext('metrics', groupOf([point], attributes)), point)
+    ].map(mapped => mapped[0]!.draft.client.family);
+
+    expect(new Set(families).size).toBe(1);
+
+    return families[0];
+  };
+
+  it.each([
+    ['opencode', 'opencode'],
+    ['github-copilot', 'copilot'],
+    ['copilot-chat', 'copilot'],
+    [' OpenCode ', 'opencode']
+  ])('derives the family of service %j as %s', (serviceName, family) => {
+    expect(familyOf(serviceName)).toBe(family);
+  });
+
+  it.each(['my-agent', 'cursor', 'claude-code', 'constructor', '__proto__', '', undefined])(
+    'keeps the generic family for service %j',
+    serviceName => {
+      expect(familyOf(serviceName)).toBe('generic');
+    }
+  );
+});
+
 describe('genAiOtlp.mapSpan other operations', () => {
   it('maps tool execution with a fact key', () => {
     let { draft } = mapSpanOne('execute_tool search', {
@@ -211,6 +252,39 @@ describe('genAiOtlp.mapSpan other operations', () => {
       data: { tool: { name: 'Bash', kind: 'shell', class: 'shell' }, outcome: 'ok' }
     });
     expect(JSON.stringify({ ...draft, identity: '' })).not.toContain('SENTINEL');
+  });
+
+  it('redacts MCP tool names in the attribute and span name without tool details', () => {
+    let span = spanOf('execute_tool mcp__linear__create_issue', {
+      'gen_ai.operation.name': 'execute_tool',
+      'gen_ai.tool.name': 'mcp__linear__create_issue',
+      'gen_ai.tool.call.id': 'call-1'
+    });
+    let group = groupOf([span], { 'service.name': 'opencode' });
+
+    let full = mapOtlpGroup('traces', group, fullIngestPolicy);
+    let redacted = mapOtlpGroup('traces', group, { toolDetails: false, sessionContext: true });
+
+    expect(full.mapped[0]!.draft.data).toMatchObject({
+      tool: { kind: 'mcp', class: 'mcp', mcp: { server: 'linear' } }
+    });
+    expect(redacted.mapped[0]!.draft.data).toMatchObject({
+      tool: { name: 'mcp_tool', kind: 'mcp', class: 'mcp' }
+    });
+    expect(redacted.mapped[0]!.draft.identity).toBe(full.mapped[0]!.draft.identity);
+    expect(JSON.stringify(redacted.mapped)).not.toMatch(/linear|create_issue/);
+  });
+
+  it('keeps tool names that are not MCP tools without tool details', () => {
+    let span = spanOf('execute_tool bash', {
+      'gen_ai.operation.name': 'execute_tool',
+      'gen_ai.tool.name': 'bash'
+    });
+
+    expect(
+      mapOtlpGroup('traces', groupOf([span]), { toolDetails: false, sessionContext: true })
+        .mapped[0]!.draft.data
+    ).toMatchObject({ tool: { name: 'bash' } });
   });
 
   it('has a null fact key and no tool without ids or names', () => {

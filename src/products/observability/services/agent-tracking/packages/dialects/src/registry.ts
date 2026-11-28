@@ -1,13 +1,27 @@
-import type { NormalizedRecord } from '@mtsrc/agent-tracking-spec';
+import { desktopContextClients, type NormalizedRecord } from '@mtsrc/agent-tracking-spec';
 import type { OtlpAttributes, OtlpDecoded, OtlpGroup } from '@mtsrc/agent-tracking-otlp';
 import { readOtlpContext, withOtlpContext } from './context';
 import { claudeCodeOtlp } from './otlp/claudeCode';
 import { groupContext } from './otlp/common';
 import { codexOtlp } from './otlp/codex';
 import { genAiOtlp } from './otlp/genai';
+import { withOtlpPolicy } from './otlp/policy';
 import { quarantineOtlp } from './otlp/quarantine';
-import { claudeCodeHooks, codexHooks, hookDialectById } from './hooks';
-import type { DialectManifest, HookDialect, Mapped, OtlpDialect, OtlpSignal } from './types';
+import { desktopContext } from './envelope/desktop';
+import { claudeCodeHooks, codexHooks } from './hooks';
+import { cursorHooks } from './hooks/cursor';
+import { opencodePlugin } from './plugin/opencode';
+import { antigravityTranscript } from './transcript/antigravity';
+import { claudeCodeTranscript } from './transcript/claudeCode';
+import { codexTranscript } from './transcript/codex';
+import type {
+  BulkItemDialect,
+  DialectManifest,
+  Mapped,
+  OtlpDialect,
+  OtlpPolicy,
+  OtlpSignal
+} from './types';
 
 export let otlpDialects: OtlpDialect[] = [claudeCodeOtlp, codexOtlp, genAiOtlp];
 
@@ -39,8 +53,23 @@ let mappers = {
   traces: (dialect: OtlpDialect) => dialect.mapSpan
 } as const;
 
-export let mapOtlpGroup = <T>(signal: OtlpSignal, group: OtlpGroup<T>): MappedGroup => {
-  let { dialect, context } = selectOtlpDialect(signal, group as OtlpGroup<unknown>);
+export let mapOtlpGroup = <T>(
+  signal: OtlpSignal,
+  received: OtlpGroup<T>,
+  policy: OtlpPolicy
+): MappedGroup => {
+  let selected = selectOtlpDialect(signal, received as OtlpGroup<unknown>);
+  let { dialect } = selected;
+
+  let group =
+    dialect == quarantineOtlp ? received : withOtlpPolicy(signal, dialect, received, policy);
+  let context =
+    group == received
+      ? selected.context
+      : {
+          ...groupContext(signal, group),
+          resourceFingerprint: selected.context.resourceFingerprint
+        };
 
   let map = (mappers[signal] as Mapper<T>)(dialect) as
     ((context: unknown, item: T) => Mapped[]) | undefined;
@@ -87,9 +116,10 @@ export type MappedDecoded = {
 
 export let mapOtlpDecoded = <T>(
   signal: OtlpSignal,
-  decoded: OtlpDecoded<T>
+  decoded: OtlpDecoded<T>,
+  policy: OtlpPolicy
 ): MappedDecoded => {
-  let groups = decoded.groups.map(group => mapOtlpGroup(signal, group));
+  let groups = decoded.groups.map(group => mapOtlpGroup(signal, group, policy));
 
   return {
     groups,
@@ -101,10 +131,68 @@ export let mapOtlpDecoded = <T>(
 
 export type { NormalizedRecord };
 
-export let dialectManifests: DialectManifest[] = [
-  { client: 'claude-code', channel: 'hook', dialect: claudeCodeHooks.id },
-  { client: 'codex', channel: 'hook', dialect: codexHooks.id }
+type ManifestEntry = Omit<DialectManifest, 'dialect'>;
+
+let manifestEntries: ManifestEntry[] = [
+  {
+    client: 'claude-code',
+    channel: 'hook',
+    handler: claudeCodeHooks,
+    device: 'never'
+  },
+  {
+    client: 'codex',
+    channel: 'hook',
+    handler: codexHooks,
+    device: 'never'
+  },
+  ...desktopContextClients.map((client): ManifestEntry => ({
+    client,
+    channel: 'envelope',
+    handler: desktopContext,
+    device: 'only',
+    requires: 'sessionContext'
+  })),
+  {
+    client: 'claude-code',
+    channel: 'transcript',
+    handler: claudeCodeTranscript,
+    device: 'only',
+    backfillOnly: true
+  },
+  {
+    client: 'codex',
+    channel: 'transcript',
+    handler: codexTranscript,
+    device: 'only',
+    backfillOnly: true
+  },
+  {
+    client: 'cursor',
+    channel: 'hook',
+    handler: cursorHooks,
+    device: 'only',
+    waitsOnDevice: true
+  },
+  {
+    client: 'antigravity',
+    channel: 'transcript',
+    handler: antigravityTranscript,
+    device: 'only'
+  },
+  {
+    client: 'opencode',
+    channel: 'sse',
+    handler: opencodePlugin,
+    device: 'only',
+    waitsOnDevice: true
+  }
 ];
+
+export let dialectManifests: DialectManifest[] = manifestEntries.map(entry => ({
+  ...entry,
+  dialect: entry.handler.id
+}));
 
 let manifestFor = (client: string, channel: string, dialect: string) =>
   dialectManifests.find(
@@ -113,7 +201,7 @@ let manifestFor = (client: string, channel: string, dialect: string) =>
   );
 
 export type BulkResolution =
-  | { ok: true; dialect: HookDialect; manifest: DialectManifest }
+  | { ok: true; dialect: BulkItemDialect; manifest: DialectManifest }
   | { ok: false; code: 'unknown_client' | 'unknown_dialect' };
 
 export let resolveBulkDialect = (
@@ -129,9 +217,7 @@ export let resolveBulkDialect = (
     return { ok: false, code: clientKnown ? 'unknown_dialect' : 'unknown_client' };
   }
 
-  let hook = hookDialectById(client, dialect);
-
-  return hook ? { ok: true, dialect: hook, manifest } : { ok: false, code: 'unknown_dialect' };
+  return { ok: true, dialect: manifest.handler, manifest };
 };
 
 let versionParts = (version: string): number[] | null => {

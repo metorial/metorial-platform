@@ -5,12 +5,7 @@ export {
   invalidClientError,
   invalidPayloadError
 } from './lib/errors';
-export {
-  isPlainObject,
-  parseJsonObject,
-  parseJsonObjectBytes,
-  parseTimestamp
-} from './lib/payload';
+export { isPlainObject, parseJsonObject, parseJsonObjectBytes } from './lib/payload';
 export { configureIngestStages } from './lib/stages';
 export { createRuntime, setRuntime, type IngestRuntime } from './lib/runtime';
 export * from './services';

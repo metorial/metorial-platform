@@ -711,6 +711,14 @@ model AgentTrackingOrganizationSettings {
   hideIndividuals Boolean @default(false)
   minGroupUsers   Int     @default(5)
 
+  toolDetails       Boolean @default(false)
+  sessionContext    Boolean @default(true)
+  sessionTitles     Boolean @default(false)
+  historyImport     Boolean @default(false)
+  historyImportDays Int     @default(90)
+
+  ticketUrlTemplate String?
+
   organizationOid BigInt       @unique
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
@@ -1270,6 +1278,34 @@ model ConsumerActor {
   @@index([defaultIdentityId])
   @@index([instanceConsumerOid])
   @@index([consumerProfileOid])
+}
+
+enum AiToolPolicyStatus {
+  sanctioned
+  not_sanctioned
+  unreviewed
+}
+
+model AiToolPolicy {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  toolKey String
+
+  status AiToolPolicyStatus
+  note   String?
+
+  decidedAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  decidedByActorOid BigInt?
+  decidedByActor    OrganizationActor? @relation(fields: [decidedByActorOid], references: [oid], onDelete: SetNull)
+
+  @@unique([instanceOid, toolKey])
 }
 
 enum ConsumerProviderSetupSessionType {
@@ -1855,12 +1891,17 @@ model ConsumerDevice {
   oauthTokenOid BigInt?     @unique
   oauthToken    OAuthToken? @relation(fields: [oauthTokenOid], references: [oid], onDelete: SetNull)
 
+  detectionSeq        Int?
+  detectionReportedAt DateTime?
+
   lastSeenAt DateTime  @default(now())
   revokedAt  DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
 
   clients                   ConsumerDeviceClient[]
+  detections                ConsumerDeviceDetection[]
+  skills                    ConsumerDeviceSkill[]
   magicMcpTokens            MagicMcpToken[]
   agentTrackingIngestTokens AgentTrackingIngestToken[]
 
@@ -1937,6 +1978,98 @@ model ConsumerDeviceClientExcludedSkill {
 
   @@unique([consumerDeviceClientOid, skillOid])
   @@index([skillOid])
+}
+
+model ConsumerDeviceSkill {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name String
+
+  createdAt DateTime @default(now())
+
+  consumerDeviceOid BigInt
+  consumerDevice    ConsumerDevice @relation(fields: [consumerDeviceOid], references: [oid], onDelete: Cascade)
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  @@unique([consumerDeviceOid, name])
+  @@index([instanceOid, name])
+  @@index([skillOid])
+}
+
+enum ConsumerDeviceDetectionState {
+  installed
+  running
+}
+
+enum ConsumerDeviceDetectionConfidence {
+  high
+  medium
+  low
+}
+
+enum ConsumerDeviceDetectionSignalKind {
+  config_dir
+  app
+  path
+  ide_extension
+  process
+}
+
+model ConsumerDeviceDetection {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  toolKey String
+
+  state       ConsumerDeviceDetectionState
+  confidence  ConsumerDeviceDetectionConfidence
+  signalKinds ConsumerDeviceDetectionSignalKind[]
+  version     String?
+
+  firstSeenAt DateTime
+  lastSeenAt  DateTime
+  goneAt      DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  consumerDeviceOid BigInt
+  consumerDevice    ConsumerDevice @relation(fields: [consumerDeviceOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  @@unique([consumerDeviceOid, toolKey])
+  @@index([instanceOid, toolKey, goneAt])
+}
+
+enum ConsumerDeviceConnectionMode {
+  local_proxy
+  direct
+}
+
+model ConsumerDeviceSettings {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  aiToolDetectionEnabled Boolean @default(false)
+
+  connectionMode ConsumerDeviceConnectionMode @default(local_proxy)
+
+  privacyNoticeAcceptedAt DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @default(now()) @updatedAt
+
+  instanceOid BigInt   @unique
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  privacyNoticeAcceptedByActorOid BigInt?
+  privacyNoticeAcceptedByActor    OrganizationActor? @relation(fields: [privacyNoticeAcceptedByActorOid], references: [oid], onDelete: SetNull)
 }
 
 enum ConsumerGroupStatus {
@@ -4762,6 +4895,8 @@ model OrganizationActor {
   auditLogs                  AuditLog[]
   events                     AuditLogEvent[]
   createdAgentTrackingViews  AgentTrackingView[]
+  aiToolPolicyDecisions      AiToolPolicy[]
+  consumerDeviceSettings     ConsumerDeviceSettings[]
 
   @@unique([isSystem, organizationOid])
 }
@@ -4976,6 +5111,10 @@ model Instance {
   consumerProviderSetupSessionBindings ConsumerProviderSetupSessionBinding[]
   consumers                            ConsumerProfile[]
   consumerDevices                      ConsumerDevice[]
+  consumerDeviceDetections             ConsumerDeviceDetection[]
+  consumerDeviceSkills                 ConsumerDeviceSkill[]
+  consumerDeviceSettings               ConsumerDeviceSettings?
+  aiToolPolicies                       AiToolPolicy[]
   portals                              Portal[]
   providerTemplates                    ProviderTemplate[]
   skills                               Skill[]
@@ -8257,6 +8396,7 @@ model Skill {
   upstreamForkSyncs               SkillForkSync[]                     @relation("SkillForkSyncUpstream")
   skillImportItems                SkillImportItem[]
   consumerDeviceClientExclusions  ConsumerDeviceClientExcludedSkill[]
+  consumerDeviceSkills            ConsumerDeviceSkill[]
 
   @@index([instanceOid, status])
   @@index([instanceOid, storeId])

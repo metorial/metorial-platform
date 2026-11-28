@@ -36,6 +36,15 @@ export type StoredAttribution = {
   workspaceId?: string;
 };
 
+export type RecordMetorialLink = {
+  toolCallId: string;
+  providerId: string;
+  toolKey?: string;
+  deploymentId?: string;
+  integrationId?: string;
+  magicMcpServerId?: string;
+};
+
 export type RecordDocument = {
   _id: string;
   organizationId: string;
@@ -106,6 +115,8 @@ export type RecordDocument = {
   data: Record<string, unknown>;
   content?: StoredContentEntry[];
   extras?: StoredExtra[];
+
+  metorial?: RecordMetorialLink;
 
   quality: {
     coerced?: string[];
@@ -187,6 +198,10 @@ EventSchema.index(
 EventSchema.index(
   { organizationId: 1, type: 1, occurredAt: -1 },
   { partialFilterExpression: { 'source.role': 'primary' } }
+);
+EventSchema.index(
+  { organizationId: 1, instanceId: 1, 'ctx.toolCallId': 1, 'client.family': 1 },
+  { partialFilterExpression: { 'ctx.toolCallId': { $exists: true } } }
 );
 
 export let MeasurementSchema = new mongoose.Schema<RecordDocument>(

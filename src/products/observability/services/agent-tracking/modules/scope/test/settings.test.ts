@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeClassification } from '../src/lib/settings';
+import { mergeClassification, mergeOrganizationSettings } from '../src/lib/settings';
 
 describe('mergeClassification', () => {
   it('changes only the switches it is given', () => {
@@ -13,5 +13,31 @@ describe('mergeClassification', () => {
 
   it('leaves the settings alone without a change', () => {
     expect(mergeClassification({ enabled: true }, undefined)).toBeUndefined();
+  });
+});
+
+describe('mergeOrganizationSettings', () => {
+  it('changes only the Desktop settings it is given', () => {
+    expect(
+      mergeOrganizationSettings(
+        {
+          sliceErasureMode: 'delete',
+          desktop: { toolDetails: true, sessionContext: false, sessionTitles: true }
+        },
+        { desktop: { sessionContext: true } }
+      )
+    ).toEqual({
+      sliceErasureMode: 'delete',
+      desktop: { toolDetails: true, sessionContext: true, sessionTitles: true }
+    });
+  });
+
+  it('keeps the Desktop settings when a change leaves them out', () => {
+    expect(
+      mergeOrganizationSettings(
+        { desktop: { historyImport: true } },
+        { privacy: { hideIndividuals: true } }
+      )
+    ).toEqual({ desktop: { historyImport: true }, privacy: { hideIndividuals: true } });
   });
 });

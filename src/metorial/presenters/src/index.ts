@@ -52,14 +52,19 @@ import {
   v1AgentPresenter,
   v1AgentTrackingFilterValuesPresenter,
   v1AgentTrackingIngestSourcePresenter,
+  v1AgentTrackingMcpServerUsagePresenter,
   v1AgentTrackingMemberInsightsPresenter,
+  v1AgentTrackingProviderCallsPresenter,
   v1AgentTrackingMemberPresenter,
   v1AgentTrackingSessionDetailPresenter,
   v1AgentTrackingSessionPresenter,
+  v1AgentTrackingSessionToolCallsPresenter,
+  v1AgentTrackingToolCallSessionPresenter,
   v1AgentTrackingInstanceSettingsPresenter,
   v1AgentTrackingOrganizationSettingsPresenter,
   v1AgentTrackingProjectSettingsPresenter,
   v1AgentTrackingSetupStatusPresenter,
+  v1AgentTrackingSkillUsagePresenter,
   v1AgentTrackingSpendBreakdownPresenter,
   v1AgentTrackingSpendReportPresenter,
   v1AgentTrackingSpendTimelinePresenter,
@@ -98,7 +103,12 @@ import {
   v1ConsumerActivityAgentPresenter,
   v1ConsumerActivitySessionConnectionPresenter,
   v1ConsumerAndProfilePresenter,
+  v1AiToolDetectionPresenter,
+  v1AiToolPresenter,
+  v1ConsumerDeviceDetectionCatalogPresenter,
+  v1ConsumerDeviceDetectionReportPresenter,
   v1ConsumerDevicePresenter,
+  v1ConsumerDeviceSettingsPresenter,
   v1ConsumerDeviceTelemetryTokenPresenter,
   v1ConsumerGroupPresenter,
   v1ConsumerInvitePresenter,
@@ -394,17 +404,22 @@ import {
   agentInstanceType,
   agentTrackingFilterValuesType,
   agentTrackingIngestSourceType,
+  agentTrackingMcpServerUsageType,
   agentTrackingMemberInsightsType,
+  agentTrackingProviderCallsType,
   agentTrackingMemberType,
   agentTrackingSessionDetailType,
+  agentTrackingSessionToolCallsType,
   agentTrackingSessionType,
   agentTrackingInstanceSettingsType,
   agentTrackingOrganizationSettingsType,
   agentTrackingProjectSettingsType,
   agentTrackingSetupStatusType,
+  agentTrackingSkillUsageType,
   agentTrackingSpendBreakdownType,
   agentTrackingSpendReportType,
   agentTrackingSpendTimelineType,
+  agentTrackingToolCallSessionType,
   agentTrackingViewType,
   agentType,
   apiKeyType,
@@ -427,6 +442,11 @@ import {
   consumerActivityAgentType,
   consumerActivitySessionConnectionType,
   consumerAndProfileType,
+  aiToolDetectionType,
+  aiToolType,
+  consumerDeviceDetectionCatalogType,
+  consumerDeviceDetectionReportType,
+  consumerDeviceSettingsType,
   consumerDeviceTelemetryTokenType,
   consumerDeviceType,
   consumerGroupType,
@@ -1537,6 +1557,42 @@ export let consumerDevicePresenter = declarePresenter(consumerDeviceType, {
   mt_2026_04_01_consumer: consumerConsumerDevicePresenter
 });
 
+export let consumerDeviceDetectionReportPresenter = declarePresenter(
+  consumerDeviceDetectionReportType,
+  {
+    mt_2025_01_01_dashboard: v1ConsumerDeviceDetectionReportPresenter,
+    mt_2026_01_01_magnetar: v1ConsumerDeviceDetectionReportPresenter,
+    mt_2026_04_01_consumer: v1ConsumerDeviceDetectionReportPresenter
+  }
+);
+
+export let consumerDeviceDetectionCatalogPresenter = declarePresenter(
+  consumerDeviceDetectionCatalogType,
+  {
+    mt_2025_01_01_dashboard: v1ConsumerDeviceDetectionCatalogPresenter,
+    mt_2026_01_01_magnetar: v1ConsumerDeviceDetectionCatalogPresenter,
+    mt_2026_04_01_consumer: v1ConsumerDeviceDetectionCatalogPresenter
+  }
+);
+
+export let consumerDeviceSettingsPresenter = declarePresenter(consumerDeviceSettingsType, {
+  mt_2025_01_01_dashboard: v1ConsumerDeviceSettingsPresenter,
+  mt_2026_01_01_magnetar: v1ConsumerDeviceSettingsPresenter,
+  mt_2026_04_01_consumer: v1ConsumerDeviceSettingsPresenter
+});
+
+export let aiToolPresenter = declarePresenter(aiToolType, {
+  mt_2025_01_01_dashboard: v1AiToolPresenter,
+  mt_2026_01_01_magnetar: v1AiToolPresenter,
+  mt_2026_04_01_consumer: v1AiToolPresenter
+});
+
+export let aiToolDetectionPresenter = declarePresenter(aiToolDetectionType, {
+  mt_2025_01_01_dashboard: v1AiToolDetectionPresenter,
+  mt_2026_01_01_magnetar: v1AiToolDetectionPresenter,
+  mt_2026_04_01_consumer: v1AiToolDetectionPresenter
+});
+
 export let consumerDeviceTelemetryTokenPresenter = declarePresenter(
   consumerDeviceTelemetryTokenType,
   {
@@ -1588,6 +1644,22 @@ export let agentTrackingSessionDetailPresenter = declarePresenter(
   }
 );
 
+export let agentTrackingSessionToolCallsPresenter = declarePresenter(
+  agentTrackingSessionToolCallsType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingSessionToolCallsPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingSessionToolCallsPresenter
+  }
+);
+
+export let agentTrackingToolCallSessionPresenter = declarePresenter(
+  agentTrackingToolCallSessionType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingToolCallSessionPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingToolCallSessionPresenter
+  }
+);
+
 export let agentTrackingFilterValuesPresenter = declarePresenter(
   agentTrackingFilterValuesType,
   {
@@ -1606,6 +1678,27 @@ export let agentTrackingMemberInsightsPresenter = declarePresenter(
   {
     mt_2025_01_01_dashboard: v1AgentTrackingMemberInsightsPresenter,
     mt_2026_01_01_magnetar: v1AgentTrackingMemberInsightsPresenter
+  }
+);
+
+export let agentTrackingSkillUsagePresenter = declarePresenter(agentTrackingSkillUsageType, {
+  mt_2025_01_01_dashboard: v1AgentTrackingSkillUsagePresenter,
+  mt_2026_01_01_magnetar: v1AgentTrackingSkillUsagePresenter
+});
+
+export let agentTrackingMcpServerUsagePresenter = declarePresenter(
+  agentTrackingMcpServerUsageType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingMcpServerUsagePresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingMcpServerUsagePresenter
+  }
+);
+
+export let agentTrackingProviderCallsPresenter = declarePresenter(
+  agentTrackingProviderCallsType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingProviderCallsPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingProviderCallsPresenter
   }
 );
 

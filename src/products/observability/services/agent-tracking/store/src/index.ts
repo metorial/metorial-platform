@@ -8,19 +8,24 @@ export type {
   ManualAssignment,
   ReportedCost,
   SessionClassification,
+  SessionCommitRef,
   SessionCoverage,
   SessionDocument,
   SessionLinkDocument,
   SessionModelSummary,
+  SessionPullRequestRef,
   SessionSummary,
   SessionTag,
   SourceHealthDocument,
   SourceKind,
+  ToolCallLinkDocument,
+  ToolCallLinkTarget,
   UsageSliceDocument
 } from './derivedModels';
 export type {
   ContentTextDocument,
   RecordDocument,
+  RecordMetorialLink,
   StoreCollection,
   StoredContentEntry,
   StoredExtra
@@ -41,6 +46,7 @@ export {
   sinkBusyRetryAfterSeconds,
   type StoragePolicy
 } from './sink';
+export { listedSessionFilter } from './derivedModels';
 export { type Admission, createAdmission } from './admission';
 export { isTransientStoreError, writeDocuments, type WriteResult } from './writer';
 export {

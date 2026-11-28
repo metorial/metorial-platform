@@ -3,7 +3,9 @@ import { v } from '@lowerdeck/validation';
 import {
   agentTrackingSessionService,
   maxRangeDays,
-  sessionListOrderBys
+  nameFilterValueValidator,
+  sessionListOrderBys,
+  ticketFilterValueValidator
 } from '@metorial/module-agent-tracking-query';
 import {
   agentTrackingSessionDetailPresenter,
@@ -57,6 +59,34 @@ export let agentTrackingSessionController = Controller.create(
               'Only return sessions of these AI coding agents, by client family as in client.family.',
               ['claude_code']
             ),
+            repository_id: idFilter(
+              'repository_id',
+              'Only return sessions that ran in one of these repositories, by `context.repositories[].id`.',
+              ['aten_0mhNnEqM7XQb3vXq8gD2']
+            ),
+            branch: idFilter(
+              'branch',
+              'Only return sessions on one of these Git branches, by exact name.',
+              ['main'],
+              nameFilterValueValidator
+            ),
+            ticket: idFilter(
+              'ticket',
+              'Only return sessions that worked on one of these tickets, by `context.tickets[].key` in any case. Issue numbers such as `#42` are refused.',
+              ['ENG-123'],
+              ticketFilterValueValidator
+            ),
+            pull_request: idFilter(
+              'pull_request',
+              'Only return sessions that opened or linked one of these pull requests, by `context.pull_requests[].key`. Matches the pull requests recorded on the session, at most 20.',
+              ['github.com/acme/api#7'],
+              nameFilterValueValidator
+            ),
+            provider_id: idFilter(
+              'provider_id',
+              'Only return sessions whose MCP tool calls reached one of these Metorial providers, by `providers[].id`.',
+              ['pro_0mhNnEqM7XQb3vXq8gD2']
+            ),
             order_by: v.optional(
               v.enumOf(sessionListOrderBys, {
                 name: 'order_by',
@@ -74,9 +104,15 @@ export let agentTrackingSessionController = Controller.create(
           organization: ctx.organization,
           project: ctx.project,
           instance: ctx.instance,
+          canReadProviders: await ctx.integrationsAccess.providers(),
           memberIds: normalizeArrayParam(ctx.query.member_id),
           modelIds: normalizeArrayParam(ctx.query.model_id),
           clientFamilies: normalizeArrayParam(ctx.query.client_family),
+          repositoryIds: normalizeArrayParam(ctx.query.repository_id),
+          branches: normalizeArrayParam(ctx.query.branch),
+          tickets: normalizeArrayParam(ctx.query.ticket),
+          pullRequests: normalizeArrayParam(ctx.query.pull_request),
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
           orderBy: ctx.query.order_by,
           range: rangeOf(ctx.query)
         });
@@ -91,7 +127,7 @@ export let agentTrackingSessionController = Controller.create(
       .get(instancePath('agent-tracking/sessions/:sessionId', 'agentTracking.sessions.get'), {
         name: 'Get agent session',
         description:
-          'Returns one session of the instance with its requests, tokens and cost per model. Results can be up to 30 seconds old.',
+          'Returns one session of the instance with its requests, tokens and cost per model and its commits. Results can be up to 30 seconds old.',
         hideInDocs: true
       })
       .output(agentTrackingSessionDetailPresenter)
@@ -100,6 +136,7 @@ export let agentTrackingSessionController = Controller.create(
           organization: ctx.organization,
           project: ctx.project,
           instance: ctx.instance,
+          canReadProviders: await ctx.integrationsAccess.providers(),
           sessionId: requireParam(ctx.params, 'sessionId')
         });
 

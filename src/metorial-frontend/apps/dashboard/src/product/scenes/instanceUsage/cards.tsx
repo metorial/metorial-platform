@@ -16,7 +16,7 @@ import {
   useInstanceUsageSummary,
   useInstanceUsageTimeline
 } from '@metorial/state';
-import { getLink, Skeleton, Text, theme, Title } from '@metorial/ui';
+import { getLink, InfoTooltip, Skeleton, Text, theme, Title } from '@metorial/ui';
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useUsageLogsLink, type UsageLogsTarget } from './links';
@@ -306,6 +306,12 @@ let Header = styled.header`
   padding: 10px 18px 10px 18px;
 `;
 
+let HeaderTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
 let Content = styled.div`
   display: flex;
   flex: 1;
@@ -364,6 +370,122 @@ let Empty = styled.div`
   justify-content: center;
 `;
 
+export type UsageTopListRow = {
+  key: string;
+  label: React.ReactNode;
+  href?: string | null;
+  count: number;
+  errorCount?: number;
+  value?: string;
+};
+
+export let UsageTopList = ({
+  title,
+  description,
+  info,
+  span = 'half',
+  loading,
+  error,
+  rows,
+  showErrors = true,
+  isError = false,
+  emptyText = 'No data for this range.'
+}: {
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  info?: React.ReactNode;
+  span?: MetricChartCardSpan;
+  loading: boolean;
+  error?: string;
+  rows: UsageTopListRow[];
+  showErrors?: boolean;
+  isError?: boolean;
+  emptyText?: string;
+}) => {
+  let Link = getLink();
+  let max = Math.max(1, ...rows.map(row => row.count));
+  let heading = (
+    <Title as="h2" size="2" weight="strong">
+      {title}
+    </Title>
+  );
+
+  return (
+    <Card $span={span}>
+      <Header>
+        {info ? (
+          <HeaderTitle>
+            {heading}
+            <InfoTooltip size={18}>{info}</InfoTooltip>
+          </HeaderTitle>
+        ) : (
+          heading
+        )}
+        {description ? (
+          <Text size="1" weight="strong" color="gray600">
+            {description}
+          </Text>
+        ) : null}
+      </Header>
+
+      <Content>
+        {loading ? (
+          Array.from({ length: 4 }, (_, i) => (
+            <Row key={i}>
+              <Skeleton active>
+                <Text size="2">Loading entry name</Text>
+              </Skeleton>
+            </Row>
+          ))
+        ) : error ? (
+          <Empty>
+            <Text size="2" color="gray600">
+              {error}
+            </Text>
+          </Empty>
+        ) : !rows.length ? (
+          <Empty>
+            <Text size="2" color="gray600">
+              {emptyText}
+            </Text>
+          </Empty>
+        ) : (
+          rows.map(row => {
+            let content = (
+              <>
+                <RowBar $ratio={row.count / max} $error={isError} />
+                <RowContent>
+                  <Text size="2" weight="medium" truncate>
+                    {row.label}
+                  </Text>
+                  <RowValues>
+                    {showErrors && row.errorCount ? (
+                      <Text size="1" color="red700">
+                        {formatNumber(row.errorCount)} errors
+                      </Text>
+                    ) : null}
+                    <Text size="2" weight="strong">
+                      {row.value ?? formatNumber(row.count)}
+                    </Text>
+                  </RowValues>
+                </RowContent>
+              </>
+            );
+
+            return row.href ? (
+              <Row key={row.key} as={Link} to={row.href}>
+                {content}
+              </Row>
+            ) : (
+              <Row key={row.key}>{content}</Row>
+            );
+          })
+        )}
+      </Content>
+    </Card>
+  );
+};
+
 export let UsageTopListCard = ({
   title,
   description,
@@ -397,8 +519,6 @@ export let UsageTopListCard = ({
     maxSeries: groupBy == 'tool' ? limit + 20 : limit
   });
   let getHref = useUsageGroupHref();
-  let Link = getLink();
-  let isError = isErrorUsageKinds(kinds);
 
   let rows = (summary.data?.top ?? [])
     .filter(row => !row.isOther && row.group)
@@ -408,81 +528,29 @@ export let UsageTopListCard = ({
     groupBy,
     rows.map(row => row.group!)
   );
-  let max = Math.max(1, ...rows.map(row => row.count));
-  let error = getUsageErrorMessage(summary.error);
 
   return (
-    <Card $span={span}>
-      <Header>
-        <Title as="h2" size="2" weight="strong">
-          {title}
-        </Title>
-        {description ? (
-          <Text size="1" weight="strong" color="gray600">
-            {description}
-          </Text>
-        ) : null}
-      </Header>
-
-      <Content>
-        {summary.isLoading ? (
-          Array.from({ length: 4 }, (_, i) => (
-            <Row key={i}>
-              <Skeleton active>
-                <Text size="2">Loading entry name</Text>
-              </Skeleton>
-            </Row>
-          ))
-        ) : error ? (
-          <Empty>
-            <Text size="2" color="gray600">
-              {error}
-            </Text>
-          </Empty>
-        ) : !rows.length ? (
-          <Empty>
-            <Text size="2" color="gray600">
-              No data for this range.
-            </Text>
-          </Empty>
-        ) : (
-          rows.map(row => {
-            let href = getHref(groupBy, row.group!);
-            let content = (
-              <>
-                <RowBar $ratio={row.count / max} $error={isError} />
-                <RowContent>
-                  <Text size="2" weight="medium" truncate>
-                    {groupBy == 'consumer' ? (
-                      <UsageConsumerName id={row.group!} />
-                    ) : (
-                      (getName(row.group!) ?? row.group)
-                    )}
-                  </Text>
-                  <RowValues>
-                    {showErrors && row.errorCount ? (
-                      <Text size="1" color="red700">
-                        {formatNumber(row.errorCount)} errors
-                      </Text>
-                    ) : null}
-                    <Text size="2" weight="strong">
-                      {valueFormatter ? valueFormatter(row) : formatNumber(row.count)}
-                    </Text>
-                  </RowValues>
-                </RowContent>
-              </>
-            );
-
-            return href ? (
-              <Row key={row.group} as={Link} to={href}>
-                {content}
-              </Row>
-            ) : (
-              <Row key={row.group}>{content}</Row>
-            );
-          })
-        )}
-      </Content>
-    </Card>
+    <UsageTopList
+      title={title}
+      description={description}
+      span={span}
+      loading={summary.isLoading}
+      error={getUsageErrorMessage(summary.error)}
+      showErrors={showErrors}
+      isError={isErrorUsageKinds(kinds)}
+      rows={rows.map(row => ({
+        key: row.group!,
+        label:
+          groupBy == 'consumer' ? (
+            <UsageConsumerName id={row.group!} />
+          ) : (
+            (getName(row.group!) ?? row.group)
+          ),
+        href: getHref(groupBy, row.group!),
+        count: row.count,
+        errorCount: row.errorCount,
+        value: valueFormatter ? valueFormatter(row) : undefined
+      }))}
+    />
   );
 };

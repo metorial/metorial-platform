@@ -1,4 +1,4 @@
-export type { Mapped } from './types';
+export type { DialectManifest, IngestPolicy, Mapped } from './types';
 export {
   dialectManifests,
   isVersionSupported,

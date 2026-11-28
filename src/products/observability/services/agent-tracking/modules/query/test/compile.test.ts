@@ -159,7 +159,97 @@ describe('bind', () => {
     );
   });
 
+  it.each(['usage', 'sessions'])(
+    'treats the branch of %s as personal while an organization hides individuals',
+    dataset => {
+      let hidden = { hideIndividuals: true, minGroupUsers: 5 };
+      let filtered = {
+        dataset,
+        measures: [dataset == 'usage' ? 'cost.usd' : 'sessions'],
+        where: { field: 'branch', op: 'in', value: ['ivan/mt-365'] }
+      };
+
+      expect(bindErrors(filtered, hidden).map(error => error.code)).toContain(
+        'personal_field'
+      );
+      expect(bindErrors(filtered)).toEqual([]);
+    }
+  );
+
   it('rejects rows mode on aggregate-only datasets', () => {
     expect(bindErrors({ dataset: 'usage', mode: 'rows' }).length).toBeGreaterThan(0);
+  });
+
+  it.each([
+    ['usage', 'branch', 'branch'],
+    ['usage', 'ticket', 'ticketRefs'],
+    ['sessions', 'branch', 'context.branch'],
+    ['sessions', 'ticket', 'context.ticketRefs'],
+    ['sessions', 'pull_request', 'summary.pullRequestRefs.key'],
+    ['sessions', 'metorial.provider', 'summary.metorial.providerIds'],
+    ['sessions', 'metorial.tool', 'summary.metorial.toolKeys']
+  ])('groups %s by %s', (dataset, dimension, path) => {
+    let pipeline = aggregatePipeline(
+      bind({ dataset, dimensions: [dimension], measures: ['cost.usd'] })
+    );
+
+    expect(JSON.stringify(pipeline)).toContain(`"$${path}"`);
+  });
+
+  it.each([
+    ['metorial.provider', 'metorial.providerId'],
+    ['metorial.tool', 'metorial.toolKey'],
+    ['metorial.deployment', 'metorial.deploymentId'],
+    ['metorial.integration', 'metorial.integrationId'],
+    ['metorial.server', 'metorial.magicMcpServerId']
+  ])('groups and filters tool calls by %s, stored on the call', (dimension, path) => {
+    let field = resolveField(datasets.tool_calls, dimension, catalog)!;
+    expect(field).toMatchObject({
+      source: { kind: 'stored', path },
+      dimension: true,
+      filter: true,
+      sensitivity: 'normal'
+    });
+
+    let pipeline = JSON.stringify(
+      aggregatePipeline(
+        bind({
+          dataset: 'tool_calls',
+          dimensions: [dimension],
+          measures: ['tool_calls'],
+          where: { field: dimension, op: 'in', value: ['pro_1'] }
+        })
+      )
+    );
+
+    expect(pipeline).toContain(`"$${path}"`);
+    expect(pipeline).toContain(`"${path}"`);
+  });
+
+  it('keeps the Metorial fields usable while an organization hides individuals', () => {
+    let hidden = { hideIndividuals: true, minGroupUsers: 5 };
+
+    expect(
+      bindErrors(
+        { dataset: 'tool_calls', dimensions: ['metorial.provider'], measures: ['tool_calls'] },
+        hidden
+      )
+    ).toEqual([]);
+    expect(
+      bindErrors(
+        { dataset: 'sessions', dimensions: ['metorial.provider'], measures: ['sessions'] },
+        hidden
+      )
+    ).toEqual([]);
+  });
+
+  it('counts branch and ticket as high-cardinality dimensions', () => {
+    expect(
+      bindErrors({
+        dataset: 'usage',
+        dimensions: ['branch', 'ticket', 'repo', 'user'],
+        measures: ['cost.usd']
+      }).map(error => error.code)
+    ).toContain('too_many_high_cardinality');
   });
 });

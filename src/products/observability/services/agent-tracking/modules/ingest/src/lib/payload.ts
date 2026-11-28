@@ -1,6 +1,3 @@
-let timestampPattern =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,9})?)?(Z|[+-]\d{2}:\d{2})$/;
-
 let strictUtf8 = new TextDecoder('utf-8', { fatal: true });
 
 export let isPlainObject = (value: unknown): value is Record<string, unknown> =>
@@ -22,12 +19,4 @@ export let parseJsonObjectBytes = (bytes: Uint8Array): Record<string, unknown> |
   } catch {
     return null;
   }
-};
-
-export let parseTimestamp = (value: string): Date | null => {
-  if (!timestampPattern.test(value)) return null;
-
-  let date = new Date(value);
-
-  return Number.isFinite(date.getTime()) ? date : null;
 };

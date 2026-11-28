@@ -75,6 +75,16 @@ export let sessionTitle = (
   return person ? `${person} on ${date}` : `Session on ${date}`;
 };
 
+export let sessionHeading = (
+  session: Parameters<typeof sessionTitle>[0] & { context: { title: string | null } },
+  now: Date
+) => {
+  let byline = sessionTitle(session, now);
+  let title = session.context.title?.trim();
+
+  return title ? { title, byline } : { title: byline, byline: null };
+};
+
 export let formatTime = (value: Date) =>
   new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit' })
     .format(new Date(value))

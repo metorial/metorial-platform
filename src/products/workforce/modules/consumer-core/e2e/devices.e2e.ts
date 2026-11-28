@@ -1,28 +1,21 @@
-import { ID, type ConsumerProfile, type User } from '@metorial/db';
+import { ID, type ConsumerProfile } from '@metorial/db';
 import {
   expectServiceError,
   firstPage,
   testContext,
-  uniqueEmail,
   uniqueId,
   useOrganization
 } from '@metorial/e2e';
 import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
 import { Fabric } from '@metorial/fabric';
 import {
-  machineAccessAuthService,
   oauthApplicationService,
   oauthAuthorizationService
 } from '@metorial/module-machine-access';
 import { magicMcpTokenService } from '@metorial/module-magic';
 import { describe, expect, it } from 'vitest';
 import { consumerDeviceService } from '../src';
-import {
-  captureFabric,
-  createConsumerProfile,
-  createPortalSurface,
-  signUpUser
-} from './_fixtures';
+import { authenticate, captureFabric, createDesktopUser, signInDesktop } from './_fixtures';
 
 let reportedClients = [
   { key: 'cursor', name: 'Cursor', detected: true, installable: true, supportsSkills: true },
@@ -37,45 +30,6 @@ let deviceInput = (installationId = uniqueId('installation-0123456789')) => ({
   appVersion: '0.2.0',
   reportedClients
 });
-
-let createDesktopUser = async (fixture: OrganizationFixture) => {
-  let email = uniqueEmail('desktop');
-  let user = await signUpUser(email);
-  let { surface } = await createPortalSurface(fixture);
-  let consumerProfile = await createConsumerProfile(fixture, surface, { email });
-  await db.consumer.update({
-    where: { oid: consumerProfile.consumerOid },
-    data: { userOid: user.oid }
-  });
-
-  return { user, consumerProfile };
-};
-
-let signInDesktop = async (
-  fixture: OrganizationFixture,
-  d: { user: User; consumerProfile: ConsumerProfile }
-) => {
-  if (!(await oauthApplicationService.getCliAuthOAuthApplication())) {
-    await oauthApplicationService.upsertCliAuthOAuthApplication();
-  }
-
-  let request = await oauthAuthorizationService.createCliAuthAuthorizationRequest({
-    context: testContext(),
-    subjectType: 'consumer'
-  });
-  await oauthAuthorizationService.acceptOAuthAuthorizationRequest({
-    oauthAuthorizationRequest: request,
-    user: d.user,
-    organizationId: fixture.organization.id,
-    consumerProfileId: d.consumerProfile.id,
-    context: testContext()
-  });
-  let exchanged = await oauthAuthorizationService.exchangeCliAuthToken({
-    token: request.deviceCode!
-  });
-
-  return await authenticate(exchanged.oauthToken.accessToken);
-};
 
 let refreshSignIn = async (oauthToken: { refreshToken: string | null }) => {
   let cliAuthApplication = await oauthApplicationService.getCliAuthOAuthApplication();
@@ -151,16 +105,6 @@ let tokenDevice = async (token: { oid: bigint }) =>
 let tokenStatus = async (token: { oid: bigint }) =>
   (await db.magicMcpToken.findUniqueOrThrow({ where: { oid: token.oid } })).status;
 
-let authenticate = async (accessToken: string) => {
-  let auth = await machineAccessAuthService.authenticateWithMachineAccessToken({
-    token: accessToken,
-    context: testContext()
-  });
-  if (auth.type != 'oauth_token') throw new Error('Expected an OAuth token');
-
-  return auth.oauthToken;
-};
-
 describe('module-consumer-core devices', () => {
   let org = useOrganization();
   let otherOrg = useOrganization();
@@ -169,13 +113,17 @@ describe('module-consumer-core devices', () => {
     fixture: OrganizationFixture,
     desktop: { consumerProfile: ConsumerProfile },
     oauthToken: Awaited<ReturnType<typeof signInDesktop>> | undefined,
-    input: Parameters<typeof consumerDeviceService.checkInDevice>[0]['input'] = deviceInput()
+    input: Parameters<typeof consumerDeviceService.checkInDevice>[0]['input'] = deviceInput(),
+    skillAccess: Parameters<
+      typeof consumerDeviceService.checkInDevice
+    >[0]['skillAccess'] = 'any'
   ) =>
     consumerDeviceService.checkInDevice({
       instance: fixture.instance,
       consumerProfile: desktop.consumerProfile,
       oauthToken,
       auditScope: fixture.auditScope,
+      skillAccess,
       input
     });
 
@@ -385,6 +333,64 @@ describe('module-consumer-core devices', () => {
       }),
       'not_found'
     );
+  });
+
+  it('stores the skills a device reports under their names and replaces them on check-in', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let other = await loadOrganizationFixture(otherOrg.ids);
+    let desktop = await createDesktopUser(fixture);
+    let oauthToken = await signInDesktop(fixture, desktop);
+    let billing = await createSkill(fixture);
+    let review = await createSkill(fixture);
+    let foreign = await createSkill(other);
+    let input = deviceInput();
+
+    let device = await checkIn(fixture, desktop, oauthToken, {
+      ...input,
+      reportedSkills: [
+        { skillId: billing.id, name: 'billing' },
+        { skillId: foreign.id, name: 'foreign' },
+        { skillId: review.id, name: 'billing' }
+      ]
+    });
+    let stored = async () =>
+      (
+        await db.consumerDeviceSkill.findMany({
+          where: { consumerDeviceOid: device.oid },
+          orderBy: { name: 'asc' }
+        })
+      ).map(row => ({ name: row.name, skillOid: row.skillOid, instanceOid: row.instanceOid }));
+
+    expect(await stored()).toEqual([
+      { name: 'billing', skillOid: billing.oid, instanceOid: fixture.instance.oid }
+    ]);
+
+    await checkIn(fixture, desktop, oauthToken, input);
+    expect(await stored()).toHaveLength(1);
+
+    await checkIn(fixture, desktop, oauthToken, {
+      ...input,
+      reportedSkills: [
+        { skillId: review.id, name: 'billing' },
+        { skillId: review.id, name: 'review' }
+      ]
+    });
+    expect(await stored()).toEqual([
+      { name: 'billing', skillOid: review.oid, instanceOid: fixture.instance.oid },
+      { name: 'review', skillOid: review.oid, instanceOid: fixture.instance.oid }
+    ]);
+
+    await checkIn(fixture, desktop, oauthToken, { ...input, reportedSkills: [] });
+    expect(await stored()).toEqual([]);
+
+    let reported = { ...input, reportedSkills: [{ skillId: billing.id, name: 'billing' }] };
+    await checkIn(fixture, desktop, oauthToken, reported, {
+      where: { id: { not: billing.id } }
+    });
+    expect(await stored()).toEqual([]);
+
+    await checkIn(fixture, desktop, oauthToken, reported, 'none');
+    expect(await stored()).toEqual([]);
   });
 
   it('links install tokens to the device of the sign-in that created them', async () => {

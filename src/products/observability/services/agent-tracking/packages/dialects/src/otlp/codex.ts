@@ -4,9 +4,16 @@ import type { RecordDraft } from '@mtsrc/agent-tracking-records-model';
 import { codexBilling } from '../billing';
 import { readFields, withCoerced, type FieldReader } from '../fields';
 import { measurementDraft } from '../measure';
-import { classifyTool } from '../tools';
+import {
+  classifyTool,
+  hasMcpServer,
+  isMcpTool,
+  redactedMcpNamespace,
+  redactedMcpTool
+} from '../tools';
 import { dateFromNanos, dateFromValue, firstDate } from '../time';
-import type { Mapped, OtlpDialect, OtlpGroupContext } from '../types';
+import { rewrite } from './policy';
+import type { Mapped, OtlpDialect, OtlpGroupContext, OtlpItemView } from '../types';
 import {
   buildUsage,
   errorFromStatus,
@@ -35,6 +42,7 @@ export let codexOtlpId = 'codex.otlp.v1';
 let adapter = 'codex';
 let eventPrefix = 'codex.';
 let scopePrefix = 'codex_otel';
+let maxPrewarmInputTokens = 16;
 
 let serviceNames = new Set([
   'codex_cli_rs',
@@ -116,6 +124,12 @@ let tokenTypes: Record<string, { type: string; warning?: string } | null> = {
 
 let sessionIdOf = (fields: FieldReader) => fields.str(...sessionKeys);
 
+let rawText = (fields: FieldReader, key: string) => {
+  let value = fields.raw(key);
+
+  return typeof value == 'string' || typeof value == 'number' ? String(value) : '';
+};
+
 let clientOf = (context: OtlpGroupContext, fields: FieldReader): RecordDraft['client'] => {
   let surface =
     surfaceFromLabel(fields.str('originator')) ?? own(surfaceByService, context.serviceName);
@@ -175,14 +189,32 @@ let turnFact = (fields: FieldReader) => {
   return id ? `turn:{session_key}:${id}` : null;
 };
 
-let toolOf = (fields: FieldReader) => {
+let mcpCallSpan = 'mcp.tools.call';
+
+let toolOf = (fields: FieldReader, source?: string) => {
   let name = fields.str('tool_name', 'tool.name');
   if (!name) return undefined;
 
-  let server = fields.str('mcp_server', 'mcp.server.name');
-
-  return classifyTool(name, server ? { mcpServer: server } : {});
+  return classifyTool(name, {
+    server: fields.str('mcp_server') ?? fields.str('mcp.server.name'),
+    namespace: fields.raw('tool_namespace'),
+    source
+  });
 };
+
+// In code mode the model calls one `exec` tool that runs a script, and every tool the script
+// calls is logged as its own tool_result, so the wrapper is not a tool call of its own. A failed
+// script still counts, so script errors show in tool error rates.
+let isCodeModeWrapper = (fields: FieldReader) =>
+  fields.str('tool_name') == 'exec' &&
+  (fields.str('tool_namespace') ?? 'functions') == 'functions';
+
+// The websocket prewarm completes a response that generates nothing from a couple of input
+// tokens, before the first prompt and without a reasoning effort.
+let isPrewarm = (fields: FieldReader) =>
+  fields.count('output_token_count') === 0 &&
+  !fields.has('model_reasoning_effort') &&
+  (fields.count('input_token_count') ?? Infinity) <= maxPrewarmInputTokens;
 
 let usageFromSse = (fields: FieldReader) =>
   buildUsage({
@@ -201,8 +233,9 @@ type LogState = {
   fields: FieldReader;
 };
 
-let logName = (log: OtlpLogRecord, fields: FieldReader) => {
-  let raw = fields.str('event.name') ?? (log.eventName || undefined);
+let logName = (log: OtlpLogRecord) => {
+  let raw =
+    readFields(log.attributes, 'log.').str('event.name') ?? (log.eventName || undefined);
 
   return raw ? stripPrefix(raw, eventPrefix) : '';
 };
@@ -224,9 +257,11 @@ let logDraft = (
       sessionIdOf(fields) ?? '',
       name,
       String(log.timeNs),
+      fields.str('event.timestamp') ?? '',
       fields.str('turn.id', 'turn_id') ?? '',
       fields.str('call_id') ?? '',
-      fields.str('event.kind') ?? ''
+      fields.str('event.kind') ?? '',
+      rawText(fields, 'tool_result_seq')
     ].join('|'),
     signalName: safeNativeName(name),
     occurredAt: firstDate(
@@ -279,6 +314,10 @@ let mapEvent = (state: LogState): RecordDraft[] => {
     }
 
     case 'api_request': {
+      // The background app-server logs requests of its own, outside any thread; they carry no
+      // model or usage, and a session they were linked to would be stretched by them.
+      if (!sessionIdOf(fields)) return [];
+
       let status = fields.int('http.response.status_code');
       let duration = fields.count('duration_ms');
       let attempt = fields.count('attempt');
@@ -306,7 +345,11 @@ let mapEvent = (state: LogState): RecordDraft[] => {
     case 'sse_event': {
       if (fields.str('event.kind') != 'response.completed') return [];
 
+      // Over HTTP each completed response is logged twice; only one of the two carries usage.
       let usage = usageFromSse(state.fields);
+      if (!usage.usage) return [];
+
+      let prewarm = isPrewarm(fields);
       let ttft = fields.count('ttft_ms');
       let tier = nativeLabel(fields.str('service_tier'));
       let effort = normalizeEffort(fields.str('model_reasoning_effort'));
@@ -316,6 +359,7 @@ let mapEvent = (state: LogState): RecordDraft[] => {
         withData(
           {
             ...logDraft(state, 'model.request'),
+            ...(prewarm ? { role: 'supplemental' as const } : {}),
             derived: usage.derived,
             warnings: usage.warnings
           },
@@ -323,10 +367,11 @@ let mapEvent = (state: LogState): RecordDraft[] => {
             outcome: 'ok',
             ...modelRef(model),
             ...billingOf(fields),
-            ...(usage.usage ? { usage: usage.usage } : {}),
+            usage: usage.usage,
             ...ok(ttft, 'ttft_ms'),
             ...ok(tier, 'service_tier'),
-            ...ok(effort, 'effort')
+            ...ok(effort, 'effort'),
+            ...(prewarm ? { purpose: 'auxiliary', warmup: true } : {})
           }
         )
       ];
@@ -397,12 +442,15 @@ let mapEvent = (state: LogState): RecordDraft[] => {
       let success = fields.bool('success');
       let duration = fields.count('duration_ms');
       let truncated = fields.bool('output_truncated');
+      let wrapper = isCodeModeWrapper(fields);
+      let counted = !wrapper || success === false;
       let hints = { tool: tool?.name };
 
       return [
         withData(
           {
             ...logDraft(state, 'tool.call'),
+            ...(counted ? {} : { role: 'supplemental' as const }),
             factKey: toolFact(fields),
             durationMs: duration,
             content: [
@@ -415,7 +463,8 @@ let mapEvent = (state: LogState): RecordDraft[] => {
             ...(success !== undefined ? { outcome: success ? 'ok' : 'error' } : {}),
             ...(success === false ? { error: { class: 'tool' } } : {}),
             ...ok(duration, 'duration_ms'),
-            ...ok(truncated, 'output_truncated')
+            ...ok(truncated, 'output_truncated'),
+            ...(wrapper ? { code_mode: 'wrapper' } : {})
           }
         )
       ];
@@ -522,7 +571,7 @@ let mapEvent = (state: LogState): RecordDraft[] => {
 
 let mapLog: OtlpDialect['mapLog'] = (context, log) => {
   let fields = readFields(log.attributes, 'log.');
-  let name = logName(log, fields);
+  let name = logName(log);
 
   let source = otlpSource(adapter, codexOtlpId, 'logs');
 
@@ -785,8 +834,8 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
       );
     }
 
-    case 'mcp.tools.call': {
-      let tool = toolOf(fields);
+    case mcpCallSpan: {
+      let tool = toolOf(fields, redactedMcpNamespace);
       let errorType = nativeLabel(fields.str('error.type'));
       let errored = failed || errorType !== undefined;
 
@@ -812,6 +861,42 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
   }
 };
 
+let codexDetails = new Set([
+  'arguments',
+  'output',
+  'mcp_server',
+  'mcp_server_origin',
+  'mcp_servers',
+  'mcp.server.name',
+  'mcp.server.origin',
+  'mcp.connector.id',
+  'mcp.connector.name',
+  'skill.name'
+]);
+
+let codexWithoutToolDetails = (item: OtlpItemView): OtlpItemView => {
+  let { attributes } = item;
+  let mcp =
+    item.name == mcpCallSpan ||
+    hasMcpServer(attributes['mcp_server']) ||
+    hasMcpServer(attributes['mcp.server.name']) ||
+    isMcpTool({ namespace: attributes['tool_namespace'] });
+
+  return {
+    name: isMcpTool({ name: item.name }) ? redactedMcpTool : item.name,
+    attributes: rewrite(attributes, (key, value) => {
+      if (codexDetails.has(key)) return undefined;
+      if (key == 'tool_namespace' && mcp) return redactedMcpNamespace;
+
+      if (key == 'tool_name' || key == 'tool.name' || key == 'tool') {
+        return mcp || isMcpTool({ name: value }) ? redactedMcpTool : value;
+      }
+
+      return value;
+    })
+  };
+};
+
 export let codexOtlp: OtlpDialect = {
   id: codexOtlpId,
   adapter,
@@ -825,5 +910,8 @@ export let codexOtlp: OtlpDialect = {
 
   mapLog,
   mapMetric,
-  mapSpan
+  mapSpan,
+
+  logName,
+  withoutToolDetails: codexWithoutToolDetails
 };

@@ -111,9 +111,7 @@ export class FieldReader {
   obj(...keys: string[]): FieldSource | undefined {
     let value = this.pick(keys)?.value;
 
-    return value !== null && typeof value == 'object' && !Array.isArray(value)
-      ? (value as FieldSource)
-      : undefined;
+    return isFieldSource(value) ? value : undefined;
   }
 
   private pick(keys: string[]): { key: string; value: unknown } | undefined {
@@ -125,5 +123,8 @@ export class FieldReader {
     return undefined;
   }
 }
+
+export let isFieldSource = (value: unknown): value is FieldSource =>
+  value !== null && typeof value == 'object' && !Array.isArray(value);
 
 export let readFields = (source: FieldSource, label: string) => new FieldReader(source, label);

@@ -5,13 +5,12 @@ import {
   ignoreNotFound,
   requireAgentTracking
 } from '@metorial/module-agent-tracking-sync';
+import { chunks, listEntitiesByIds, unique } from './entities';
 import type { ReadScope } from './scope';
 import { readCallOptions } from './service';
 import type { AgentTrackingMember } from './types';
 
 export let unknownMemberKey = 'unknown';
-
-let maxMemberLookup = 100;
 
 let consumerLookupConcurrency = 20;
 
@@ -20,14 +19,6 @@ export let maxConsumerLookups = 500;
 let lookupStatuses = ['managed', 'discovered', 'merged'] as const;
 
 type RemoteMember = Awaited<ReturnType<AgentTracking['entity']['list']>>['items'][number];
-
-export let unique = (values: (string | null | undefined)[]) =>
-  [...new Set(values.filter((value): value is string => !!value))].sort();
-
-let chunks = <T>(values: T[], size: number) =>
-  Array.from({ length: Math.ceil(values.length / size) }, (_, index) =>
-    values.slice(index * size, (index + 1) * size)
-  );
 
 let placeholderMember = (id: string, name: string | null = null): AgentTrackingMember => ({
   id,
@@ -39,26 +30,8 @@ let placeholderMember = (id: string, name: string | null = null): AgentTrackingM
   needsReview: false
 });
 
-let listByIds = async (d: { organizationId: string; ids: string[] }) => {
-  let agentTracking = requireAgentTracking();
-
-  let pages = await Promise.all(
-    chunks(d.ids, maxMemberLookup).map(ids =>
-      agentTracking.entity.list(
-        {
-          organizationId: d.organizationId,
-          kinds: ['user'],
-          statuses: [...lookupStatuses],
-          ids,
-          limit: maxMemberLookup
-        },
-        readCallOptions
-      )
-    )
-  );
-
-  return pages.flatMap(page => page.items);
-};
+let listByIds = (d: { organizationId: string; ids: string[] }) =>
+  listEntitiesByIds({ ...d, kind: 'user', statuses: [...lookupStatuses] });
 
 // A merged member keeps the id its usage is recorded under and shows the details of the member
 // it was merged into.
@@ -90,6 +63,16 @@ let fetchRemoteMembers = async (d: { organizationId: string; ids: string[] }) =>
   }
 
   return resolved;
+};
+
+export let resolveConsumerRefs = async (d: { organizationId: string; ids: string[] }) => {
+  let resolved = await fetchRemoteMembers(d);
+
+  return new Map(
+    [...resolved.entries()]
+      .filter(([, member]) => member.source == consumerEntitySource && member.ref)
+      .map(([id, member]) => [id, member.ref!] as const)
+  );
 };
 
 let presentMembers = async (d: {

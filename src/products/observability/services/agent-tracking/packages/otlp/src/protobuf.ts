@@ -300,6 +300,8 @@ let decodeLogRecord = (r: Reader): OtlpLogRecord => {
     }
   }
 
+  if (log.timeNs == 0n) log.timeNs = log.observedTimeNs;
+
   return log;
 };
 

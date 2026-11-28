@@ -47,6 +47,7 @@ import {
   parseAmount,
   toDecimal
 } from '@mtsrc/agent-tracking-cost';
+import { positiveCount, record, text } from './fields';
 
 let dayMs = 24 * 60 * 60 * 1000;
 
@@ -77,16 +78,6 @@ export type SessionlessRecord = Pick<
   RecordDocument,
   '_id' | 'type' | 'occurredAt' | 'source' | 'ingest' | 'client' | 'data' | 'attribution'
 > & { kind: RecordKind };
-
-let record = (value: unknown) =>
-  typeof value == 'object' && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-
-let text = (value: unknown) => (typeof value == 'string' && value ? value : undefined);
-
-let number = (value: unknown) =>
-  typeof value == 'number' && Number.isFinite(value) && value > 0 ? value : 0;
 
 let date = (value: unknown) => {
   if (value instanceof Date) return value;
@@ -289,7 +280,7 @@ export let sessionlessBaseSlices = async (d: {
       continue;
     }
 
-    let value = number(data.value);
+    let value = positiveCount(data.value);
     if (!value) continue;
 
     if (document.type == 'tokens') {

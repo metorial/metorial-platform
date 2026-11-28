@@ -166,6 +166,21 @@ describe('small helpers', () => {
     expect(traceOf({ traceId: '', spanId: 's', parentSpanId: '' })).toEqual({ spanId: 's' });
   });
 
+  it('treats all-zero trace and span ids as absent', () => {
+    let zeroTrace = '0'.repeat(32);
+    let zeroSpan = '0'.repeat(16);
+    let trace = '4bf92f3577b34da6a3ce929d0e0e4736';
+    let span = '00f067aa0ba902b7';
+
+    expect(traceOf({ traceId: zeroTrace, spanId: zeroSpan })).toBeUndefined();
+    expect(traceOf({ traceId: trace, spanId: zeroSpan })).toEqual({ traceId: trace });
+    expect(traceOf({ traceId: zeroTrace, spanId: span })).toEqual({ spanId: span });
+    expect(traceOf({ traceId: trace, spanId: span, parentSpanId: zeroSpan })).toEqual({
+      traceId: trace,
+      spanId: span
+    });
+  });
+
   it('strips prefixes only at the start', () => {
     expect(stripPrefix('claude_code.x', 'claude_code.')).toBe('x');
     expect(stripPrefix('x.claude_code.', 'claude_code.')).toBe('x.claude_code.');

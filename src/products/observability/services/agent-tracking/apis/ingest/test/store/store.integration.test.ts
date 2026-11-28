@@ -89,7 +89,10 @@ let hookPipeline = (contentMode: 'basic' | 'full') => {
     keys: createOrganizationKeyDeriver('test-hash-secret'),
     stages: []
   });
-  let principal = testPrincipal({ contentPolicy: { defaultMode: contentMode } });
+  let principal = testPrincipal({
+    contentPolicy: { defaultMode: contentMode },
+    binding: { deviceId: undefined, deviceMode: 'ephemeral' }
+  });
   let fetch = createIngestFetch(async () => principal);
 
   let send = (body: unknown) => {

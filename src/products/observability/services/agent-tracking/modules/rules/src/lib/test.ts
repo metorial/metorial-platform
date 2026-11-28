@@ -8,7 +8,7 @@ import type {
   AttributionEntity,
   AttributionRuleDefinition
 } from '@mtsrc/agent-tracking-module-attribution';
-import { getStore, isStoreConfigured } from '@mtsrc/agent-tracking-store';
+import { getStore, isStoreConfigured, listedSessionFilter } from '@mtsrc/agent-tracking-store';
 import type { AttributionEntry } from '@mtsrc/agent-tracking-store';
 
 let testWindowMs = 30 * 24 * 60 * 60 * 1000;
@@ -64,6 +64,7 @@ export let testRuleDraft = async (d: {
     .collections()
     .sessions.find({
       organizationId: d.organizationId,
+      ...listedSessionFilter,
       startedAt: { $gte: windowStart, $lte: now },
       ...(d.draft.scopeProjectId ? { projectId: d.draft.scopeProjectId } : {}),
       ...(d.draft.scopeInstanceId ? { instanceId: d.draft.scopeInstanceId } : {})

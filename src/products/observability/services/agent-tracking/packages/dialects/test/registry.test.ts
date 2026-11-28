@@ -1,3 +1,4 @@
+import { fullIngestPolicy } from '@mtsrc/agent-tracking-spec';
 import { describe, expect, it } from 'vitest';
 import { groupOf, logRecord, metricPoint, spanOf } from '@mtsrc/agent-tracking-otlp/test/otlp';
 import type { OtlpAttributes, OtlpDecoded } from '@mtsrc/agent-tracking-otlp';
@@ -5,6 +6,13 @@ import { claudeCodeOtlp } from '../src/otlp/claudeCode';
 import { codexOtlp } from '../src/otlp/codex';
 import { genAiOtlp } from '../src/otlp/genai';
 import { quarantineOtlp } from '../src/otlp/quarantine';
+import { desktopContext } from '../src/envelope/desktop';
+import { claudeCodeHooks, codexHooks } from '../src/hooks';
+import { cursorHooks } from '../src/hooks/cursor';
+import { opencodePlugin } from '../src/plugin/opencode';
+import { antigravityTranscript } from '../src/transcript/antigravity';
+import { claudeCodeTranscript } from '../src/transcript/claudeCode';
+import { codexTranscript } from '../src/transcript/codex';
 import {
   dialectManifests,
   isVersionSupported,
@@ -82,7 +90,7 @@ describe('mapOtlpGroup', () => {
       claude
     );
 
-    let result = mapOtlpGroup('logs', group);
+    let result = mapOtlpGroup('logs', group, fullIngestPolicy);
 
     expect(result).toMatchObject({ dialect: claudeCodeOtlp, suppressed: 0, failed: 0 });
     expect(result.mapped.map(m => m.draft.type)).toEqual([
@@ -101,7 +109,7 @@ describe('mapOtlpGroup', () => {
       claude
     );
 
-    let result = mapOtlpGroup('metrics', group);
+    let result = mapOtlpGroup('metrics', group, fullIngestPolicy);
 
     expect(result.mapped).toHaveLength(1);
     expect(result.suppressed).toBe(2);
@@ -118,7 +126,7 @@ describe('mapOtlpGroup', () => {
 
     let group = groupOf([throwing, logRecord({ 'event.name': 'user_prompt' })], claude);
 
-    let result = mapOtlpGroup('logs', group);
+    let result = mapOtlpGroup('logs', group, fullIngestPolicy);
 
     expect(result.failed).toBe(1);
     expect(result.mapped).toHaveLength(1);
@@ -131,7 +139,7 @@ describe('mapOtlpGroup', () => {
     try {
       let group = groupOf([spanOf('a'), spanOf('b')], { 'service.name': 'codex_cli_rs' });
 
-      expect(mapOtlpGroup('traces', group)).toMatchObject({
+      expect(mapOtlpGroup('traces', group, fullIngestPolicy)).toMatchObject({
         dialect: codexOtlp,
         mapped: [],
         suppressed: 2,
@@ -145,9 +153,17 @@ describe('mapOtlpGroup', () => {
   it('routes unknown groups through quarantine for every signal', () => {
     let resource = { 'service.name': 'mystery' };
 
-    let logs = mapOtlpGroup('logs', groupOf([logRecord({}, { body: 'e' })], resource));
-    let metrics = mapOtlpGroup('metrics', groupOf([metricPoint('m', 1)], resource));
-    let traces = mapOtlpGroup('traces', groupOf([spanOf('s')], resource));
+    let logs = mapOtlpGroup(
+      'logs',
+      groupOf([logRecord({}, { body: 'e' })], resource),
+      fullIngestPolicy
+    );
+    let metrics = mapOtlpGroup(
+      'metrics',
+      groupOf([metricPoint('m', 1)], resource),
+      fullIngestPolicy
+    );
+    let traces = mapOtlpGroup('traces', groupOf([spanOf('s')], resource), fullIngestPolicy);
 
     for (let result of [logs, metrics, traces]) {
       expect(result.dialect).toBe(quarantineOtlp);
@@ -157,7 +173,7 @@ describe('mapOtlpGroup', () => {
   });
 
   it('handles empty groups', () => {
-    expect(mapOtlpGroup('logs', groupOf([], {}))).toMatchObject({
+    expect(mapOtlpGroup('logs', groupOf([], {}), fullIngestPolicy)).toMatchObject({
       mapped: [],
       suppressed: 0,
       failed: 0
@@ -186,7 +202,8 @@ describe('mapOtlpDecoded', () => {
           }
         ),
         groupOf([metricPoint('anything', 1)], { 'service.name': 'mystery' })
-      ])
+      ]),
+      fullIngestPolicy
     );
 
     expect(result.groups.map(g => g.dialect)).toEqual([
@@ -200,7 +217,7 @@ describe('mapOtlpDecoded', () => {
   });
 
   it('is empty for no groups', () => {
-    expect(mapOtlpDecoded('logs', decoded([]))).toEqual({
+    expect(mapOtlpDecoded('logs', decoded([]), fullIngestPolicy)).toEqual({
       groups: [],
       mapped: 0,
       suppressed: 0,
@@ -210,11 +227,48 @@ describe('mapOtlpDecoded', () => {
 });
 
 describe('dialectManifests', () => {
-  it('declares the claude-code and codex hook dialects', () => {
-    expect(dialectManifests).toEqual([
-      { client: 'claude-code', channel: 'hook', dialect: 'claude-code.hooks.v1' },
-      { client: 'codex', channel: 'hook', dialect: 'codex.hooks.v1' }
+  it('declares the hook, Desktop context, transcript and client usage dialects', () => {
+    expect(dialectManifests.map(({ handler: _handler, ...manifest }) => manifest)).toEqual([
+      {
+        client: 'claude-code',
+        channel: 'hook',
+        dialect: 'claude-code.hooks.v1',
+        device: 'never'
+      },
+      { client: 'codex', channel: 'hook', dialect: 'codex.hooks.v1', device: 'never' },
+      ...['claude-code', 'codex', 'cursor', 'antigravity', 'opencode'].map(client => ({
+        client,
+        channel: 'envelope',
+        dialect: 'metorial.desktop.context.v1',
+        device: 'only',
+        requires: 'sessionContext'
+      })),
+      ...[
+        { client: 'claude-code', dialect: 'claude-code.transcript.v1' },
+        { client: 'codex', dialect: 'codex.transcript.v1' }
+      ].map(transcript => ({
+        ...transcript,
+        channel: 'transcript',
+        device: 'only',
+        backfillOnly: true
+      })),
+      ...[
+        { client: 'cursor', channel: 'hook', dialect: 'cursor.hooks.v1', waitsOnDevice: true },
+        { client: 'antigravity', channel: 'transcript', dialect: 'antigravity.transcript.v1' },
+        {
+          client: 'opencode',
+          channel: 'sse',
+          dialect: 'opencode.plugin.v1',
+          waitsOnDevice: true
+        }
+      ].map(usage => ({ ...usage, device: 'only' }))
     ]);
+  });
+
+  it('gives every manifest the handler of its own dialect', () => {
+    for (let manifest of dialectManifests) {
+      expect(manifest.handler.id).toBe(manifest.dialect);
+    }
   });
 });
 
@@ -228,8 +282,117 @@ describe('resolveBulkDialect', () => {
     }
   });
 
+  it('resolves the hook dialects to the hook mappers', () => {
+    expect(resolveBulkDialect('claude-code', 'hook', 'claude-code.hooks.v1')).toMatchObject({
+      ok: true,
+      dialect: claudeCodeHooks
+    });
+    expect(resolveBulkDialect('codex', 'hook', 'codex.hooks.v1')).toMatchObject({
+      ok: true,
+      dialect: codexHooks
+    });
+  });
+
+  it.each(['claude-code', 'codex', 'cursor', 'antigravity', 'opencode'])(
+    'resolves the Desktop context dialect for the client %s',
+    client => {
+      expect(
+        resolveBulkDialect(client, 'envelope', 'metorial.desktop.context.v1')
+      ).toMatchObject({
+        ok: true,
+        dialect: desktopContext,
+        manifest: { client, requires: 'sessionContext', device: 'only' }
+      });
+    }
+  );
+
+  it('does not know Copilot as a Desktop context client', () => {
+    expect(resolveBulkDialect('copilot', 'envelope', 'metorial.desktop.context.v1')).toEqual({
+      ok: false,
+      code: 'unknown_client'
+    });
+  });
+
+  it('resolves each transcript dialect for its own client on the transcript channel', () => {
+    expect(
+      resolveBulkDialect('claude-code', 'transcript', 'claude-code.transcript.v1')
+    ).toMatchObject({ ok: true, dialect: claudeCodeTranscript });
+    expect(resolveBulkDialect('codex', 'transcript', 'codex.transcript.v1')).toMatchObject({
+      ok: true,
+      dialect: codexTranscript
+    });
+
+    for (let [client, channel, dialect] of [
+      ['codex', 'transcript', 'claude-code.transcript.v1'],
+      ['claude-code', 'transcript', 'codex.transcript.v1'],
+      ['claude-code', 'envelope', 'claude-code.transcript.v1'],
+      ['cursor', 'transcript', 'claude-code.transcript.v1']
+    ] as const) {
+      expect(resolveBulkDialect(client, channel, dialect)).toEqual({
+        ok: false,
+        code: 'unknown_dialect'
+      });
+    }
+  });
+
+  it('resolves each client usage dialect for its own client and channel only', () => {
+    expect(resolveBulkDialect('cursor', 'hook', 'cursor.hooks.v1')).toMatchObject({
+      ok: true,
+      dialect: cursorHooks,
+      manifest: { device: 'only' }
+    });
+    expect(
+      resolveBulkDialect('antigravity', 'transcript', 'antigravity.transcript.v1')
+    ).toMatchObject({
+      ok: true,
+      dialect: antigravityTranscript,
+      manifest: { device: 'only' }
+    });
+    expect(resolveBulkDialect('opencode', 'sse', 'opencode.plugin.v1')).toMatchObject({
+      ok: true,
+      dialect: opencodePlugin,
+      manifest: { device: 'only' }
+    });
+
+    for (let [client, channel, dialect] of [
+      ['cursor', 'envelope', 'cursor.hooks.v1'],
+      ['cursor', 'hook', 'generic.hooks.v1'],
+      ['claude-code', 'hook', 'cursor.hooks.v1'],
+      ['opencode', 'envelope', 'opencode.plugin.v1'],
+      ['antigravity', 'hook', 'antigravity.transcript.v1'],
+      ['cursor', 'transcript', 'antigravity.transcript.v1']
+    ] as const) {
+      expect(resolveBulkDialect(client, channel, dialect)).toEqual({
+        ok: false,
+        code: 'unknown_dialect'
+      });
+    }
+  });
+
+  it('resolves the Desktop context dialect only on the envelope channel', () => {
+    expect(resolveBulkDialect('codex', 'hook', 'metorial.desktop.context.v1')).toEqual({
+      ok: false,
+      code: 'unknown_dialect'
+    });
+    expect(resolveBulkDialect('codex', 'envelope', 'metorial.desktop.context.v2')).toEqual({
+      ok: false,
+      code: 'unknown_dialect'
+    });
+    expect(resolveBulkDialect('codex', 'envelope', 'codex.hooks.v1')).toEqual({
+      ok: false,
+      code: 'unknown_dialect'
+    });
+  });
+
+  it('resolves the Desktop context dialect only for the listed clients', () => {
+    expect(resolveBulkDialect('aider', 'envelope', 'metorial.desktop.context.v1')).toEqual({
+      ok: false,
+      code: 'unknown_client'
+    });
+  });
+
   it('reports an unknown client', () => {
-    expect(resolveBulkDialect('cursor', 'hook', 'claude-code.hooks.v1')).toEqual({
+    expect(resolveBulkDialect('aider', 'hook', 'claude-code.hooks.v1')).toEqual({
       ok: false,
       code: 'unknown_client'
     });

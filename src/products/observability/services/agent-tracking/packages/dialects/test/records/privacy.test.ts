@@ -1,3 +1,4 @@
+import { fullIngestPolicy } from '@mtsrc/agent-tracking-spec';
 import { describe, expect, it } from 'vitest';
 import type { ContentPolicy, NormalizedRecord } from '@mtsrc/agent-tracking-spec';
 import { buildMapped, unitPrincipal } from '../build';
@@ -58,7 +59,10 @@ let hookFixtures = (): Fixture[] => {
 
       fixtures.push({
         name: `hook:${label}:${event}`,
-        mapped: dialect.map({ identityHint: 'h1', occurredAt: hookTime }, enriched),
+        mapped: dialect.map(
+          { policy: fullIngestPolicy, identityHint: 'h1', occurredAt: hookTime },
+          enriched
+        ),
         carriesContent: label != 'generic' && contentEvents.has(event)
       });
     }
@@ -66,7 +70,7 @@ let hookFixtures = (): Fixture[] => {
     fixtures.push({
       name: `hook:${label}:rich-prompt`,
       mapped: dialect.map(
-        { identityHint: 'h2', occurredAt: hookTime },
+        { policy: fullIngestPolicy, identityHint: 'h2', occurredAt: hookTime },
         { ...poison, hook_event_name: 'UserPromptSubmit', session_id: 's', prompt: richPrompt }
       ),
       carriesContent: label != 'generic'
@@ -74,7 +78,10 @@ let hookFixtures = (): Fixture[] => {
 
     fixtures.push({
       name: `hook:${label}:no-event-name`,
-      mapped: dialect.map({ identityHint: 'h3' }, { ...poison, session_id: 's' }),
+      mapped: dialect.map(
+        { policy: fullIngestPolicy, identityHint: 'h3' },
+        { ...poison, session_id: 's' }
+      ),
       carriesContent: false
     });
   }
@@ -143,7 +150,8 @@ let logsFixture = (
     () =>
       mapOtlpGroup(
         'logs',
-        groupOf([logRecord({ ...poison, ...attributes }, overrides)], resource)
+        groupOf([logRecord({ ...poison, ...attributes }, overrides)], resource),
+        fullIngestPolicy
       ),
     carriesContent
   );
@@ -160,7 +168,8 @@ let metricFixture = (
     () =>
       mapOtlpGroup(
         'metrics',
-        groupOf([{ ...point, attributes: { ...poison, ...point.attributes } }], resource)
+        groupOf([{ ...point, attributes: { ...poison, ...point.attributes } }], resource),
+        fullIngestPolicy
       ),
     false
   );
@@ -180,7 +189,8 @@ let spanFixture = (
         groupOf(
           [{ ...span, attributes: { ...poison, ...span.attributes } }],
           resource
-        ) as OtlpGroup<OtlpSpan>
+        ) as OtlpGroup<OtlpSpan>,
+        fullIngestPolicy
       ),
     false
   );
@@ -687,7 +697,7 @@ describe('quarantine naming', () => {
 
   it('records identifier-shaped bodies as the signal name by design', () => {
     let group = groupOf([logRecord({}, { body: 'my.event_name' })], unknownResource);
-    let [mapped] = mapOtlpGroup('logs', group).mapped;
+    let [mapped] = mapOtlpGroup('logs', group, fullIngestPolicy).mapped;
 
     expect(buildMapped(mapped!).source.signal_name).toBe('my.event_name');
   });

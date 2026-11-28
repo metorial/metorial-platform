@@ -1,12 +1,30 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  filterValueValidator,
+  maxFilterValueLength,
+  maxNameFilterValueLength,
+  nameFilterValueValidator,
+  ticketFilterValueValidator
+} from '../src/lib/filterValues';
 import { agentTrackingFilterValueService } from '../src/services/agentTrackingFilterValue';
 import { agentTrackingMemberService } from '../src/services/agentTrackingMember';
 import { sessionUsageRange } from '../src/lib/sessions';
 import { agentTrackingSessionService } from '../src/services/agentTrackingSession';
 import { agentTrackingSetupStatusService } from '../src/services/agentTrackingSetupStatus';
-import { cache, callsTo, consumers, remoteMember, resetMocks, rpc, scope } from './_mocks';
+import {
+  cache,
+  callsTo,
+  consumers,
+  desktop,
+  links,
+  remoteMember,
+  remoteRepository,
+  resetMocks,
+  rpc,
+  scope
+} from './_mocks';
 
 let remoteSession = (overrides: Record<string, unknown> = {}) => ({
   object: 'agent_tracking#session',
@@ -409,6 +427,276 @@ describe('session paging by item id', () => {
   });
 });
 
+describe('session context', () => {
+  let context = (overrides: Record<string, unknown> = {}) => ({
+    workspaceIds: [],
+    repoIds: ['aten_repo'],
+    branch: 'ivan/eng-12-title',
+    head: 'a'.repeat(40),
+    defaultBranch: 'main',
+    worktree: true,
+    subPath: 'services/api',
+    permissionMode: 'acceptEdits',
+    title: 'Fix the login page',
+    ticketRefs: ['ENG-12', 'A&B-3'],
+    tags: [],
+    pathStored: false,
+    ...overrides
+  });
+
+  let vcsSummary = {
+    ...remoteSession().summary,
+    commits: 2,
+    pullRequests: 2,
+    lines: { added: 12, removed: 3 },
+    commitRefs: [
+      {
+        sha: 'c'.repeat(40),
+        at: '2026-11-17T09:30:00.000Z',
+        branch: 'ivan/eng-12-title',
+        ticketRefs: ['ENG-12', '#42']
+      },
+      {
+        sha: 'd'.repeat(40),
+        at: '2026-11-17T09:10:00.000Z',
+        branch: null,
+        ticketRefs: []
+      }
+    ],
+    pullRequestRefs: [
+      {
+        key: 'github.com/acme/api#7',
+        provider: 'github.com',
+        repository: 'acme/api',
+        number: 7,
+        kind: 'opened'
+      },
+      {
+        key: 'git.acme.dev/acme/api#8',
+        provider: 'git.acme.dev',
+        repository: 'acme/api',
+        number: 8,
+        kind: 'linked'
+      }
+    ]
+  };
+
+  let withContext = (overrides: Record<string, unknown> = {}) =>
+    remoteSession({ context: context(), summary: vcsSummary, ...overrides });
+
+  beforeEach(() => {
+    resetMocks();
+    rpc.handlers['entity:list'] = ({ kinds }) => ({
+      items: kinds.includes('repo') ? [remoteRepository()] : [remoteMember()],
+      pagination: {}
+    });
+    rpc.handlers['knowledge:models:get'] = ({ modelId }) => ({ id: modelId, name: null });
+    rpc.handlers['query:run'] = () => ({ rows: [], totals: null, labels: {} });
+  });
+
+  it('presents repositories, branch, tickets and pull requests, with links built here', async () => {
+    links.ticketUrlTemplate = 'https://linear.app/acme/issue/{key}';
+    rpc.handlers['session:get'] = () => withContext();
+
+    let session = await agentTrackingSessionService.getSession({
+      ...scope,
+      sessionId: 'atse_c0ffee'
+    });
+
+    expect(session.context).toEqual({
+      repositories: [
+        {
+          id: 'aten_repo',
+          provider: 'github.com',
+          host: 'github.com',
+          owner: 'acme',
+          name: 'api',
+          url: 'https://github.com/acme/api'
+        }
+      ],
+      branch: 'ivan/eng-12-title',
+      defaultBranch: 'main',
+      head: 'a'.repeat(40),
+      worktree: true,
+      subPath: 'services/api',
+      permissionMode: 'acceptEdits',
+      title: null,
+      tickets: [
+        { key: 'ENG-12', url: 'https://linear.app/acme/issue/ENG-12' },
+        { key: 'A&B-3', url: 'https://linear.app/acme/issue/A%26B-3' }
+      ],
+      pullRequests: [
+        {
+          key: 'github.com/acme/api#7',
+          provider: 'github.com',
+          host: 'github.com',
+          repository: 'acme/api',
+          number: 7,
+          kind: 'opened',
+          url: 'https://github.com/acme/api/pull/7'
+        },
+        {
+          key: 'git.acme.dev/acme/api#8',
+          provider: 'git.acme.dev',
+          host: 'git.acme.dev',
+          repository: 'acme/api',
+          number: 8,
+          kind: 'linked',
+          url: null
+        }
+      ],
+      commitCount: 2,
+      pullRequestCount: 2,
+      lines: { added: 12, removed: 3 }
+    });
+    expect(session.commits).toEqual([
+      {
+        sha: 'c'.repeat(40),
+        committedAt: new Date('2026-11-17T09:30:00.000Z'),
+        branch: 'ivan/eng-12-title',
+        tickets: [
+          { key: 'ENG-12', url: 'https://linear.app/acme/issue/ENG-12' },
+          { key: '#42', url: 'https://github.com/acme/api/issues/42' }
+        ]
+      },
+      {
+        sha: 'd'.repeat(40),
+        committedAt: new Date('2026-11-17T09:10:00.000Z'),
+        branch: null,
+        tickets: []
+      }
+    ]);
+  });
+
+  it('ignores the repository URL a device reported and rebuilds it', async () => {
+    rpc.handlers['entity:list'] = ({ kinds }) => ({
+      items: kinds.includes('repo')
+        ? [
+            remoteRepository({
+              attributes: {
+                provider: 'github.com',
+                owner: 'acme',
+                name: 'api',
+                url: 'javascript:alert(1)'
+              }
+            })
+          ]
+        : [remoteMember()],
+      pagination: {}
+    });
+    rpc.handlers['session:get'] = () => withContext();
+
+    let session = await agentTrackingSessionService.getSession({
+      ...scope,
+      sessionId: 'atse_c0ffee'
+    });
+
+    expect(session.context.repositories[0]!.url).toBe('https://github.com/acme/api');
+    expect(session.context.tickets.map(ticket => ticket.url)).toEqual([null, null]);
+  });
+
+  it('shows the title only while Session Titles is on, and not from a cached read', async () => {
+    rpc.handlers['session:get'] = () => withContext();
+    let read = () =>
+      agentTrackingSessionService.getSession({ ...scope, sessionId: 'atse_c0ffee' });
+
+    expect((await read()).context.title).toBeNull();
+
+    desktop.sessionTitles = true;
+    expect((await read()).context.title).toBe('Fix the login page');
+
+    desktop.sessionTitles = false;
+    expect((await read()).context.title).toBeNull();
+    expect(callsTo('session:get')).toHaveLength(2);
+  });
+
+  it('resolves the repositories of a page in one call and keeps the list light', async () => {
+    rpc.handlers['session:list'] = () => ({
+      items: [
+        withContext(),
+        withContext({
+          sessionKey: 'beef',
+          context: context({ repoIds: ['aten_repo', 'aten_gone'] })
+        }),
+        remoteSession({ sessionKey: 'cafe' })
+      ],
+      pagination: { hasMoreAfter: false, hasMoreBefore: false }
+    });
+
+    let page = await (await agentTrackingSessionService.listSessions(scope)).run({ limit: 3 });
+
+    let repositoryCalls = callsTo('entity:list').filter(call => call.input.kinds[0] == 'repo');
+    expect(repositoryCalls).toHaveLength(1);
+    expect(repositoryCalls[0]!.input).toMatchObject({
+      organizationId: 'org_1',
+      kinds: ['repo'],
+      ids: ['aten_gone', 'aten_repo']
+    });
+
+    let [first, second, third] = page.items;
+    expect(first).not.toHaveProperty('commits');
+    expect(second!.context.repositories).toEqual([
+      expect.objectContaining({ id: 'aten_repo', name: 'api' }),
+      {
+        id: 'aten_gone',
+        provider: null,
+        host: null,
+        owner: null,
+        name: null,
+        url: null
+      }
+    ]);
+    expect(third!.context).toMatchObject({
+      repositories: [],
+      branch: null,
+      tickets: [],
+      pullRequests: [],
+      commitCount: 0,
+      lines: { added: 0, removed: 0 }
+    });
+  });
+
+  it('shows and looks up at most 16 repositories of a session', async () => {
+    let repoIds = Array.from({ length: 20 }, (_, index) => `aten_r${index}`);
+    rpc.handlers['session:list'] = () => ({
+      items: [withContext({ context: context({ repoIds }) })],
+      pagination: { hasMoreAfter: false, hasMoreBefore: false }
+    });
+
+    let page = await (await agentTrackingSessionService.listSessions(scope)).run({ limit: 1 });
+
+    let [lookup] = callsTo('entity:list').filter(call => call.input.kinds[0] == 'repo');
+    expect(lookup!.input.ids).toEqual([...repoIds.slice(0, 16)].sort());
+    expect(page.items[0]!.context.repositories.map(repository => repository.id)).toEqual(
+      repoIds.slice(0, 16)
+    );
+  });
+
+  it('passes the repository, branch, ticket and pull request filters to the service', async () => {
+    rpc.handlers['session:list'] = () => ({
+      items: [],
+      pagination: { hasMoreAfter: false, hasMoreBefore: false }
+    });
+
+    await (
+      await agentTrackingSessionService.listSessions({
+        ...scope,
+        repositoryIds: ['aten_repo', 'aten_api', 'aten_repo'],
+        branches: ['main'],
+        tickets: ['eng-12', 'ENG-12', '#42'],
+        pullRequests: ['github.com/acme/api#7']
+      })
+    ).run({});
+
+    expect(callsTo('session:list')[0]!.input).toMatchObject({
+      repoIds: ['aten_api', 'aten_repo'],
+      branches: ['main'],
+      ticketRefs: ['#42', 'ENG-12'],
+      pullRequests: ['github.com/acme/api#7']
+    });
+  });
+});
+
 describe('agentTrackingFilterValueService', () => {
   beforeEach(() => resetMocks());
 
@@ -495,6 +783,8 @@ describe('agentTrackingFilterValueService', () => {
         member: null,
         model: { id: 'claude-sonnet-4-5', name: 'Claude Sonnet 4.5' },
         client: null,
+        repository: null,
+        provider: null,
         requests: 4
       },
       {
@@ -503,10 +793,150 @@ describe('agentTrackingFilterValueService', () => {
         member: null,
         model: null,
         client: null,
+        repository: null,
+        provider: null,
         requests: null
       }
     ]);
     expect(searched.items.at(-1)).toMatchObject({ value: 'unknown', kind: 'unknown' });
+  });
+});
+
+describe('repository, branch and ticket filter values', () => {
+  beforeEach(() => {
+    resetMocks();
+    rpc.handlers['entity:list'] = () => ({ items: [remoteRepository()], pagination: {} });
+  });
+
+  it('lists repositories seen in usage with their names, in one lookup', async () => {
+    rpc.handlers['query:values'] = () => ({
+      values: [
+        { value: 'aten_repo', label: { name: 'acme/api' }, count: 9 },
+        { value: 'aten_gone', label: null, count: 1 }
+      ],
+      truncated: false
+    });
+
+    let repositories = await agentTrackingFilterValueService.listFilterValues({
+      ...scope,
+      field: 'repository',
+      search: 'ap',
+      range: {}
+    });
+
+    expect(callsTo('query:values')[0]!.input).toMatchObject({
+      dataset: 'usage',
+      field: 'repo',
+      search: 'ap'
+    });
+    expect(callsTo('entity:list')).toHaveLength(1);
+    expect(callsTo('entity:list')[0]!.input).toMatchObject({
+      kinds: ['repo'],
+      ids: ['aten_gone', 'aten_repo']
+    });
+    expect(repositories.items).toEqual([
+      {
+        value: 'aten_repo',
+        kind: 'repository',
+        member: null,
+        model: null,
+        client: null,
+        repository: {
+          id: 'aten_repo',
+          provider: 'github.com',
+          host: 'github.com',
+          owner: 'acme',
+          name: 'api',
+          url: 'https://github.com/acme/api'
+        },
+        provider: null,
+        requests: 9
+      },
+      expect.objectContaining({
+        value: 'aten_gone',
+        repository: {
+          id: 'aten_gone',
+          provider: null,
+          host: null,
+          owner: null,
+          name: null,
+          url: null
+        }
+      })
+    ]);
+  });
+
+  it('lists branches and tickets from usage without an unknown option', async () => {
+    rpc.handlers['query:values'] = ({ field }) => ({
+      values:
+        field == 'branch'
+          ? [{ value: 'main', label: null, count: 4 }]
+          : [{ value: 'ENG-12', label: null, count: 2 }],
+      truncated: true
+    });
+
+    let branches = await agentTrackingFilterValueService.listFilterValues({
+      ...scope,
+      field: 'branch',
+      range: {}
+    });
+    let tickets = await agentTrackingFilterValueService.listFilterValues({
+      ...scope,
+      field: 'ticket',
+      range: {}
+    });
+
+    expect(
+      callsTo('query:values').map(call => [call.input.dataset, call.input.field])
+    ).toEqual([
+      ['usage', 'branch'],
+      ['usage', 'ticket']
+    ]);
+    expect(branches.items.map(item => [item.kind, item.value])).toEqual([['branch', 'main']]);
+    expect(tickets).toMatchObject({
+      truncated: true,
+      items: [{ kind: 'ticket', value: 'ENG-12' }]
+    });
+    expect(callsTo('entity:list')).toHaveLength(0);
+  });
+
+  it('describes held values uppercased and leaves out ones that cannot be a value of the field', async () => {
+    let repositories = await agentTrackingFilterValueService.listFilterValues({
+      ...scope,
+      field: 'repository',
+      values: ['aten_repo', 'not a repository'],
+      range: {}
+    });
+    let tickets = await agentTrackingFilterValueService.listFilterValues({
+      ...scope,
+      field: 'ticket',
+      values: ['eng-12', 'ENG-12', '#42', 'unknown', 'no ticket'],
+      range: {}
+    });
+
+    expect(callsTo('query:values')).toHaveLength(0);
+    expect(repositories.items.map(item => [item.value, item.repository?.name])).toEqual([
+      ['aten_repo', 'api']
+    ]);
+    expect(tickets.items.map(item => item.value)).toEqual(['ENG-12']);
+  });
+
+  it('accepts branch names up to 512 characters, longer than other values', async () => {
+    let branch = 'b'.repeat(maxNameFilterValueLength);
+    let held = await agentTrackingFilterValueService.listFilterValues({
+      ...scope,
+      field: 'branch',
+      values: [branch, `${branch}b`],
+      range: {}
+    });
+
+    expect(held.items.map(item => item.value)).toEqual([branch]);
+    expect(nameFilterValueValidator().validate(branch).success).toBe(true);
+    expect(nameFilterValueValidator().validate(`${branch}b`).success).toBe(false);
+    expect(filterValueValidator().validate('x'.repeat(maxFilterValueLength + 1)).success).toBe(
+      false
+    );
+    expect(ticketFilterValueValidator().validate('#42').success).toBe(false);
   });
 });
 
@@ -539,6 +969,8 @@ describe('agentTrackingFilterValueService for clients and held values', () => {
         member: null,
         model: null,
         client: { family: 'claude_code', name: 'Claude Code' },
+        repository: null,
+        provider: null,
         requests: 9
       },
       {
@@ -546,7 +978,9 @@ describe('agentTrackingFilterValueService for clients and held values', () => {
         kind: 'client',
         member: null,
         model: null,
-        client: { family: 'cursor', name: null },
+        client: { family: 'cursor', name: 'Cursor' },
+        repository: null,
+        provider: null,
         requests: 2
       }
     ]);
@@ -684,6 +1118,8 @@ describe('seat and plan filter values', () => {
         member: null,
         model: null,
         client: null,
+        repository: null,
+        provider: null,
         requests: 7
       },
       {
@@ -692,6 +1128,8 @@ describe('seat and plan filter values', () => {
         member: null,
         model: null,
         client: null,
+        repository: null,
+        provider: null,
         requests: 2
       }
     ]);
@@ -725,6 +1163,8 @@ describe('seat and plan filter values', () => {
         member: null,
         model: null,
         client: null,
+        repository: null,
+        provider: null,
         requests: null
       }
     ]);

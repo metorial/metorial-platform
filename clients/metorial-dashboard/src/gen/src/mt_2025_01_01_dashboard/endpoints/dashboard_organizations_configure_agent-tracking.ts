@@ -11,7 +11,7 @@ import {
 
 /**
  * @name Agent Tracking Organization Settings controller
- * @description The privacy settings of agent tracking, for the whole organization.
+ * @description The privacy, Metorial Desktop and link settings of agent tracking, for the whole organization.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -38,7 +38,7 @@ export class MetorialDashboardOrganizationsConfigureAgentTrackingEndpoint {
 
   /**
    * @name Get agent tracking organization settings
-   * @description Returns the privacy settings of agent tracking for the organization.
+   * @description Returns the privacy, Metorial Desktop and link settings of agent tracking for the organization.
    *
    * @param `organizationId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -65,7 +65,7 @@ export class MetorialDashboardOrganizationsConfigureAgentTrackingEndpoint {
 
   /**
    * @name Update agent tracking organization settings
-   * @description Changes the privacy settings of the organization; leaving a field out keeps its value. Applies to the next request. service_status says whether agent tracking has taken the change yet.
+   * @description Changes the privacy, Metorial Desktop and link settings of the organization; leaving a field out keeps its value. Applies to the next request. service_status says whether agent tracking has taken the change yet.
    *
    * @param `organizationId` - string
    * @param `body` - DashboardOrganizationsConfigureAgentTrackingUpdateBody

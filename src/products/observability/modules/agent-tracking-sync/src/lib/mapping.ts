@@ -13,7 +13,8 @@ export let clientEntitySource = 'metorial.client';
 
 export let syncedEntitySources = {
   user: consumerEntitySource,
-  device: deviceEntitySource
+  device: deviceEntitySource,
+  agent: clientEntitySource
 } as const;
 
 export let archivableStatuses = ['managed', 'discovered'] as const;

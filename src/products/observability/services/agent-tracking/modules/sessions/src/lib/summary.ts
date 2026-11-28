@@ -19,15 +19,23 @@ import type { PricePeriod } from '@mtsrc/agent-tracking-model-resolver';
 import type { OverridePricer } from '@mtsrc/agent-tracking-module-pricing';
 import type {
   ReportedCost,
+  SessionCommitRef,
   SessionCoverage,
   SessionModelSummary,
+  SessionPullRequestRef,
   SessionSummary,
   SourceKind
 } from '@mtsrc/agent-tracking-store';
 import type { RecordDocument } from '@mtsrc/agent-tracking-store';
-import { documentCorrelations, type Correlation } from './keys';
+import { documentCorrelations, movesSessionBounds, type Correlation } from './keys';
+import { createSessionToolCallPass, type SessionMcpToolCallRef } from './toolCalls';
 import { sourceKindOf, usageRank } from '@mtsrc/agent-tracking-module-usage';
 import { bucketStart } from '@mtsrc/agent-tracking-layers';
+import {
+  desktopContextId,
+  isClaudeCodeMainQuerySource,
+  maxCostUsd
+} from '@mtsrc/agent-tracking-spec';
 import { type VendorSource } from '@mtsrc/agent-tracking-model-resolver';
 import {
   addTokens,
@@ -37,9 +45,17 @@ import {
   toDecimal,
   type Tokens
 } from '@mtsrc/agent-tracking-cost';
+import { positiveCount, record, text } from './fields';
 
 let preferredBases = ['billed', 'contract', 'server_estimate', 'client_estimate'] as const;
 let centsPerUsd = 100n;
+let catalogFirstFamilies = new Set(['opencode']);
+let maxClientUsdPerMillionTokens = 1000n;
+
+let maxCommitRefs = 50;
+let maxPullRequestRefs = 20;
+let commitTimeAheadMs = 5 * 60 * 1000;
+let commitTimeBeforeSessionMs = 30 * 24 * 60 * 60 * 1000;
 
 let vendorSourceOrder: VendorSource[] = [
   'reported',
@@ -62,14 +78,18 @@ export type SummaryRecord = Pick<
   | 'ctx'
   | 'data'
   | 'attribution'
+  | 'metorial'
 >;
 
 export type SessionAggregate = {
   records: number;
+  empty: boolean;
   summary: SessionSummary;
   slices: BaseSlice[];
   coverage: Omit<SessionCoverage, 'fullyAttributed'>;
   correlations: Correlation[];
+  mcpToolCalls: SessionMcpToolCallRef[];
+  toolCallRepoIds: (string | null)[];
   firstOccurredAt?: Date;
   lastOccurredAt?: Date;
   lastTurnObservedAt?: Date;
@@ -92,8 +112,11 @@ type UsageEntry = {
   userId?: string;
   billing: Billing;
   tokens?: RequestTokens;
+  aggregate: boolean;
   costs: CostEntry[];
   failed: boolean;
+  errorClass?: string;
+  keyed: boolean;
 };
 
 type ModelTotals = Grouped & {
@@ -105,54 +128,77 @@ type ModelTotals = Grouped & {
   priceAssumed: boolean;
 };
 
-type SliceTotals = {
+type Costed = {
+  costs: Map<string, CostEntry>;
+  computed?: Amount;
+  contract?: Amount;
+};
+
+type SliceTotals = Costed & {
   slice: Omit<
     BaseSlice,
     'lines' | 'costReported' | 'costComputedUsd' | 'costContractUsd' | 'costUsd'
   >;
-  costs: Map<string, CostEntry>;
-  computed?: Amount;
-  contract?: Amount;
   preferred?: Amount;
-  codeLines: { added: number; removed: number };
-  toolLines: { added: number; removed: number };
+  codeLines: Lines;
+  toolLines: Lines;
+  statsLines: Lines;
 };
 
-type Grouped = {
-  tokens: Tokens;
-  costs: Map<string, CostEntry>;
-  computed?: Amount;
-  contract?: Amount;
-};
+type Grouped = Costed & { tokens: Tokens };
 
 type CostedEntry = { costs: CostEntry[]; computed?: Amount; contract?: Amount };
+
+type CumulativeLines = { occurredAt: Date; added: number; removed: number };
+
+type PullRequestEntry = { ref: SessionPullRequestRef; at: Date };
+
+type CommitEntry = { ref: SessionCommitRef; committedAt?: Date };
+
+type Lines = { added: number; removed: number };
+
+type Span = { first?: Date; firstSubagentId?: string; last?: Date; endedAt: number };
+
+let widen = (span: Span, occurredAt: Date, durationMs: number, subagentId?: string) => {
+  if (!span.first || occurredAt < span.first) {
+    span.first = occurredAt;
+    span.firstSubagentId = subagentId;
+  }
+
+  if (!span.last || occurredAt > span.last) span.last = occurredAt;
+
+  span.endedAt = Math.max(span.endedAt, occurredAt.getTime() + durationMs);
+};
 
 let strongerSource = (a: VendorSource | undefined, b: VendorSource | undefined) =>
   !a || (b && vendorSourceOrder.indexOf(b) < vendorSourceOrder.indexOf(a)) ? b : a;
 
-let record = (value: unknown) =>
-  typeof value == 'object' && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
+let purposeOf = (family: string, data: Record<string, unknown>) => {
+  let purpose = text(data.purpose);
+  let agentName = text(data.agent_name);
 
-let text = (value: unknown) => (typeof value == 'string' && value ? value : undefined);
+  let legacyMain =
+    family == 'claude-code' &&
+    purpose == 'subagent' &&
+    agentName !== undefined &&
+    isClaudeCodeMainQuerySource(agentName);
 
-let count = (value: unknown) =>
-  typeof value == 'number' && Number.isFinite(value) && value > 0 ? value : 0;
+  return legacyMain ? 'main' : purpose;
+};
 
 export let readTokens = (value: unknown): RequestTokens | undefined => {
   let usage = record(value);
   if (!usage) return undefined;
 
-  let cacheWrite5m = count(usage.cacheWrite5m);
-  let cacheWrite1h = count(usage.cacheWrite1h);
+  let cacheWrite5m = positiveCount(usage.cacheWrite5m);
+  let cacheWrite1h = positiveCount(usage.cacheWrite1h);
 
   let tokens: RequestTokens = {
-    inputUncached: count(usage.inputUncached),
-    cacheRead: count(usage.cacheRead),
-    cacheWrite: count(usage.cacheWrite) || cacheWrite5m + cacheWrite1h,
-    output: count(usage.output),
-    reasoning: count(usage.reasoning),
+    inputUncached: positiveCount(usage.inputUncached),
+    cacheRead: positiveCount(usage.cacheRead),
+    cacheWrite: positiveCount(usage.cacheWrite) || cacheWrite5m + cacheWrite1h,
+    output: positiveCount(usage.output),
+    reasoning: positiveCount(usage.reasoning),
     ...(cacheWrite5m ? { cacheWrite5m } : {}),
     ...(cacheWrite1h ? { cacheWrite1h } : {})
   };
@@ -193,6 +239,44 @@ export let addCost = (target: Map<string, CostEntry>, cost: CostEntry) => {
   else target.set(key, { ...cost });
 };
 
+let boundedClientCosts = (costs: CostEntry[], tokens: RequestTokens | undefined) => {
+  let usdCosts = costs.filter(cost => usdAmount(cost) !== undefined);
+  if (!usdCosts.length) return costs;
+
+  let usd = usdCosts.reduce((sum, cost) => sum + usdAmount(cost)!, 0n);
+  let counted = tokens
+    ? tokens.inputUncached +
+      tokens.cacheRead +
+      tokens.cacheWrite +
+      tokens.output +
+      tokens.reasoning
+    : 0;
+  let perMessage = parseAmount(maxCostUsd)!;
+  let byTokens =
+    (BigInt(counted) * parseAmount(1)! * maxClientUsdPerMillionTokens) / 1_000_000n;
+  let cap = counted > 0 && byTokens < perMessage ? byTokens : perMessage;
+
+  return [
+    ...costs.filter(cost => usdAmount(cost) === undefined),
+    { unit: 'usd', basis: usdCosts[0]!.basis, amount: usd < cap ? usd : cap }
+  ];
+};
+
+let addCosted = (
+  group: Costed,
+  item: { reported: CostEntry[]; computed?: Amount; contract?: Amount }
+) => {
+  for (let cost of item.reported) addCost(group.costs, cost);
+  if (item.computed !== undefined) group.computed = (group.computed ?? 0n) + item.computed;
+  if (item.contract !== undefined) group.contract = (group.contract ?? 0n) + item.contract;
+};
+
+let costFieldsOf = (group: Costed) => ({
+  costReported: reportedCosts(group.costs),
+  ...(group.computed !== undefined ? { costComputedUsd: toDecimal(group.computed) } : {}),
+  ...(group.contract !== undefined ? { costContractUsd: toDecimal(group.contract) } : {})
+});
+
 export let reportedCosts = (costs: Map<string, CostEntry>): ReportedCost[] =>
   [...costs.values()].map(cost => ({
     unit: cost.unit,
@@ -203,6 +287,77 @@ export let reportedCosts = (costs: Map<string, CostEntry>): ReportedCost[] =>
 let increment = (target: Record<string, number>, key: string) => {
   target[key] = (target[key] ?? 0) + 1;
 };
+
+let strings = (value: unknown) =>
+  Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry == 'string')
+    : undefined;
+
+let dateOf = (value: unknown) => {
+  let date = typeof value == 'string' ? new Date(value) : undefined;
+
+  return date && Number.isFinite(date.getTime()) ? date : undefined;
+};
+
+let mergeCommitRef = (
+  refs: Map<string, CommitEntry>,
+  key: string,
+  occurredAt: Date,
+  data: Record<string, unknown>
+) => {
+  let sha = text(data.sha);
+  if (!sha) return;
+
+  let entry = refs.get(key) ?? { ref: { sha, at: occurredAt } };
+  let { ref } = entry;
+  if (occurredAt < ref.at) ref.at = occurredAt;
+
+  let branch = text(data.branch);
+  let ticketRefs = strings(data.ticketRefs);
+
+  if (branch && !ref.branch) ref.branch = branch;
+  if (ticketRefs?.length && !ref.ticketRefs) ref.ticketRefs = ticketRefs;
+  entry.committedAt ??= dateOf(data.committedAt);
+
+  refs.set(key, entry);
+};
+
+let commitTime = (entry: CommitEntry, sessionStart: Date | undefined) => {
+  let { committedAt } = entry;
+  if (!committedAt) return entry.ref.at;
+
+  let tooLate = committedAt.getTime() > entry.ref.at.getTime() + commitTimeAheadMs;
+  let tooEarly =
+    !!sessionStart &&
+    committedAt.getTime() < sessionStart.getTime() - commitTimeBeforeSessionMs;
+
+  return tooLate || tooEarly ? entry.ref.at : committedAt;
+};
+
+let mergePullRequestRef = (
+  refs: Map<string, PullRequestEntry>,
+  occurredAt: Date,
+  data: Record<string, unknown>
+) => {
+  let provider = text(data.provider);
+  let repository = text(data.repository);
+  let number = typeof data.number == 'number' ? data.number : undefined;
+  let kind = data.kind == 'linked' ? ('linked' as const) : ('opened' as const);
+  if (!provider || !repository || !number) return;
+
+  let key = `${provider}/${repository}#${number}`;
+  let entry = refs.get(key) ?? {
+    ref: { key, provider, repository, number, kind },
+    at: occurredAt
+  };
+  if (occurredAt > entry.at) entry.at = occurredAt;
+  if (kind == 'opened') entry.ref.kind = kind;
+
+  refs.set(key, entry);
+};
+
+let newestFirst = <T extends { at: Date }>(entries: Iterable<T>, limit: number) =>
+  [...entries].sort((a, b) => b.at.getTime() - a.at.getTime()).slice(0, limit);
 
 export type CostBasis = (typeof preferredBases)[number] | 'computed';
 
@@ -251,6 +406,149 @@ let billingFields = (billing: Billing | undefined) =>
       }
     : {};
 
+let selectUsageSource = (usage: UsageEntry[]) => {
+  let usageBearing = usage.filter(entry => entry.tokens || entry.costs.length);
+  let winnerRank = Math.min(...usageBearing.map(entry => entry.rank));
+  let winner = usageBearing.find(entry => entry.rank == winnerRank)?.source;
+
+  let requestEntries = usage.filter(entry => entry.type == 'model.request');
+  let winnerHasRequests = requestEntries.some(entry => entry.rank == winnerRank);
+
+  // A keyed transcript request fills a gap in the winning source only when all of that source's
+  // usage requests are keyed; otherwise it could be counted twice.
+  let winnerUsageRequests = requestEntries
+    .filter(entry => entry.rank == winnerRank && (entry.tokens || entry.costs.length))
+    .sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
+  let fillsGaps =
+    winnerUsageRequests.length > 0 && winnerUsageRequests.every(entry => entry.keyed);
+  let isGapFill = (entry: UsageEntry) =>
+    fillsGaps && entry.keyed && entry.source == 'transcript' && entry.rank != winnerRank;
+  let countsUsageOf = (entry: UsageEntry) => entry.rank == winnerRank || isGapFill(entry);
+
+  // The transcript has no billing, so a gap takes the billing of the nearest earlier winning
+  // request (else the first).
+  for (let entry of usage) {
+    if (!isGapFill(entry)) continue;
+
+    let nearest =
+      winnerUsageRequests.findLast(other => other.occurredAt <= entry.occurredAt) ??
+      winnerUsageRequests[0]!;
+
+    entry.billing = { ...nearest.billing };
+  }
+
+  return {
+    hasUsage: usageBearing.length > 0,
+    winner,
+    winnerRank,
+    requestEntries,
+    winnerHasRequests,
+    isGapFill,
+    countsUsageOf
+  };
+};
+
+let priceUsage = async (d: {
+  usage: UsageEntry[];
+  selection: ReturnType<typeof selectUsageSource>;
+  family: string;
+  catalog: CatalogIndex | null;
+  pricing?: OverridePricer | null;
+}) => {
+  let modelByCorrelation = new Map<string, UsageEntry>();
+
+  for (let entry of d.selection.requestEntries) {
+    if (!entry.modelRaw) continue;
+
+    if (entry.turnId) modelByCorrelation.set(`turn:${entry.turnId}`, entry);
+    if (entry.requestId) modelByCorrelation.set(`request:${entry.requestId}`, entry);
+  }
+
+  let requestOf = (entry: UsageEntry): ModelRequest | undefined =>
+    entry.modelRaw
+      ? {
+          raw: entry.modelRaw,
+          provider: entry.provider,
+          family: d.family,
+          baseUrl: entry.baseUrl,
+          subscription: isSubscriptionBilling(entry.billing)
+        }
+      : undefined;
+
+  let resolver = d.catalog
+    ? await d.catalog.prepare(d.usage.flatMap(entry => requestOf(entry) ?? []))
+    : null;
+
+  let resolve = (entry: UsageEntry, at: Date): ResolvedModel => {
+    let request = requestOf(entry);
+    return request && resolver ? resolver.resolveModel({ ...request, at }) : {};
+  };
+
+  return d.usage
+    .filter(entry =>
+      entry.type == 'model.request'
+        ? !d.selection.winnerHasRequests || d.selection.countsUsageOf(entry)
+        : entry.rank == d.selection.winnerRank
+    )
+    .map(entry => {
+      let modelSource =
+        entry.modelRaw || entry.type == 'model.request'
+          ? entry
+          : (modelByCorrelation.get(`request:${entry.requestId}`) ??
+            modelByCorrelation.get(`turn:${entry.turnId}`) ??
+            entry);
+
+      let resolution = resolve(modelSource, entry.occurredAt);
+
+      let countsUsage = d.selection.countsUsageOf(entry);
+      let tokens = countsUsage ? entry.tokens : undefined;
+      let catalogFirst = catalogFirstFamilies.has(d.family);
+      let reported = countsUsage ? entry.costs : [];
+      if (catalogFirst) reported = boundedClientCosts(reported, tokens);
+
+      // Usage summed over several model calls says nothing about the size of any one context,
+      // so it is priced at the base tier, as sessionless rollups are.
+      let contextTokens =
+        tokens && !entry.aggregate
+          ? tokens.inputUncached + tokens.cacheRead + tokens.cacheWrite
+          : 0;
+      let computedNumber =
+        resolution.period && tokens
+          ? computeRequestCost({ pricing: resolution.period.pricing, tokens, contextTokens })
+          : undefined;
+      let listed = computedNumber === undefined ? undefined : parseAmount(computedNumber);
+      let computed = listed;
+      let costs = catalogFirst && listed !== undefined ? [] : reported;
+
+      let contract =
+        d.pricing && (tokens || costs.length)
+          ? d.pricing({
+              at: entry.occurredAt,
+              resolution,
+              billingMode: entry.billing.mode,
+              list: computed,
+              tokens,
+              contextTokens
+            })
+          : undefined;
+
+      return {
+        entry,
+        resolution,
+        modelId: resolution.modelId,
+        modelRaw: modelSource.modelRaw,
+        provider: modelSource.provider,
+        tokens,
+        costs,
+        reported,
+        catalogFirst,
+        computed,
+        overrideId: contract?.override.id,
+        contract: contract?.amount
+      };
+    });
+};
+
 export let aggregateSession = async (d: {
   records: AsyncIterable<SummaryRecord> | Iterable<SummaryRecord>;
   family: string;
@@ -258,6 +556,7 @@ export let aggregateSession = async (d: {
   pricing?: OverridePricer | null;
   declarations?: DeclarationLookup | null;
   correlationsSince?: Date;
+  hasMeasurements?: () => Promise<boolean>;
 }): Promise<SessionAggregate> => {
   let seen = new Map<string, Set<string>>();
   let isNew = (type: string, key: string) => {
@@ -270,11 +569,11 @@ export let aggregateSession = async (d: {
   };
 
   let records = 0;
-  let firstOccurredAt: Date | undefined;
-  let lastOccurredAt: Date | undefined;
-  let lastEndedAt = 0;
+  let ownSpan: Span = { endedAt: 0 };
+  let anySpan: Span = { endedAt: 0 };
   let lastTurnObservedAt: Date | undefined;
-  let firstSubagentId: string | undefined;
+  let fromDesktop = false;
+  let worked = false;
 
   let turns = 0;
   let prompts = 0;
@@ -285,8 +584,10 @@ export let aggregateSession = async (d: {
   let subagentNames = new Map<string, string>();
   let codeLines = { added: 0, removed: 0 };
   let toolLines = { added: 0, removed: 0 };
-  let commits = 0;
   let pullRequests = 0;
+  let commitRefs = new Map<string, CommitEntry>();
+  let pullRequestRefs = new Map<string, PullRequestEntry>();
+  let statsSamples: CumulativeLines[] = [];
   let errorsByClass: Record<string, number> = {};
   let compactions = 0;
   let hasContext = false;
@@ -294,7 +595,9 @@ export let aggregateSession = async (d: {
   let sessionProvider: string | undefined;
 
   let correlations = new Map<string, Correlation>();
+  let toolCallPass = createSessionToolCallPass();
   let usage: UsageEntry[] = [];
+  let requestSlots = new Map<string, number>();
   let slices = new Map<string, SliceTotals>();
 
   let sliceFor = (d: {
@@ -341,7 +644,8 @@ export let aggregateSession = async (d: {
         },
         costs: new Map(),
         codeLines: { added: 0, removed: 0 },
-        toolLines: { added: 0, removed: 0 }
+        toolLines: { added: 0, removed: 0 },
+        statsLines: { added: 0, removed: 0 }
       };
 
       slices.set(key, totals);
@@ -358,14 +662,10 @@ export let aggregateSession = async (d: {
     let ctx = document.ctx ?? {};
     let subagentId = ctx.agent?.id;
 
-    if (!firstOccurredAt || occurredAt < firstOccurredAt) {
-      firstOccurredAt = occurredAt;
-      firstSubagentId = subagentId;
+    widen(anySpan, occurredAt, document.durationMs ?? 0, subagentId);
+    if (movesSessionBounds({ origin: ctx.sessionOrigin, role: document.source.role })) {
+      widen(ownSpan, occurredAt, document.durationMs ?? 0, subagentId);
     }
-
-    if (!lastOccurredAt || occurredAt > lastOccurredAt) lastOccurredAt = occurredAt;
-
-    lastEndedAt = Math.max(lastEndedAt, occurredAt.getTime() + (document.durationMs ?? 0));
 
     if (!d.correlationsSince || document.observedAt > d.correlationsSince) {
       for (let correlation of documentCorrelations(document)) {
@@ -373,14 +673,35 @@ export let aggregateSession = async (d: {
       }
     }
 
+    toolCallPass.add(document);
+
     if (document.type == 'session.context') hasContext = true;
     if (document.attribution?.workspaceId) hasContext = true;
     if (document.attribution?.repoId) hasContext = hasRepo = true;
+    if (document.source.dialect == desktopContextId) fromDesktop = true;
+
+    // Turns and usage count in every role, since some clients send them only as aggregates or
+    // spans; a connection warmup is no work.
+    let tokens = readTokens(data.usage);
+    let cost = readCost(data.cost);
+
+    if (document.type == 'turn.completed' || ((tokens || cost) && data.warmup !== true)) {
+      worked = true;
+    }
 
     if (document.source.role != 'primary') continue;
 
     let dedupeKey = document.source.factKey ?? document._id;
-    if (!isNew(document.type, dedupeKey)) continue;
+    let keyedRequest = document.type == 'model.request' && !!document.source.factKey;
+
+    if (document.type == 'vcs.commit') {
+      mergeCommitRef(commitRefs, dedupeKey, occurredAt, data);
+    }
+    if (document.type == 'vcs.pull_request') {
+      mergePullRequestRef(pullRequestRefs, occurredAt, data);
+    }
+
+    if (!keyedRequest && !isNew(document.type, dedupeKey)) continue;
 
     let error = record(data.error);
     let errorClass = text(error?.class);
@@ -426,10 +747,10 @@ export let aggregateSession = async (d: {
         totals.slice.toolCalls++;
 
         if (lines) {
-          toolLines.added += count(lines.added);
-          toolLines.removed += count(lines.removed);
-          totals.toolLines.added += count(lines.added);
-          totals.toolLines.removed += count(lines.removed);
+          toolLines.added += positiveCount(lines.added);
+          toolLines.removed += positiveCount(lines.removed);
+          totals.toolLines.added += positiveCount(lines.added);
+          totals.toolLines.removed += positiveCount(lines.removed);
         }
 
         break;
@@ -439,12 +760,21 @@ export let aggregateSession = async (d: {
         let lines = record(data.lines);
         if (!lines) break;
 
+        if (data.cumulative === true) {
+          statsSamples.push({
+            occurredAt,
+            added: positiveCount(lines.added),
+            removed: positiveCount(lines.removed)
+          });
+          break;
+        }
+
         let totals = sliceFor({ occurredAt, subagentId });
 
-        codeLines.added += count(lines.added);
-        codeLines.removed += count(lines.removed);
-        totals.codeLines.added += count(lines.added);
-        totals.codeLines.removed += count(lines.removed);
+        codeLines.added += positiveCount(lines.added);
+        codeLines.removed += positiveCount(lines.removed);
+        totals.codeLines.added += positiveCount(lines.added);
+        totals.codeLines.removed += positiveCount(lines.removed);
         break;
       }
 
@@ -457,10 +787,6 @@ export let aggregateSession = async (d: {
 
         break;
       }
-
-      case 'vcs.commit':
-        commits++;
-        break;
 
       case 'vcs.pull_request':
         if (!data.kind || data.kind == 'opened') pullRequests++;
@@ -483,8 +809,6 @@ export let aggregateSession = async (d: {
       continue;
     }
 
-    let tokens = readTokens(data.usage);
-    let cost = readCost(data.cost);
     let model = record(data.model);
     let target = record(data.for);
 
@@ -496,11 +820,7 @@ export let aggregateSession = async (d: {
       data
     });
 
-    if (document.type == 'model.request' && data.outcome && data.outcome != 'ok') {
-      increment(errorsByClass, errorClass ?? 'unknown');
-    }
-
-    usage.push({
+    let entry: UsageEntry = {
       type: document.type,
       rank: usageRank(d.family, source),
       source,
@@ -511,14 +831,33 @@ export let aggregateSession = async (d: {
       modelRaw: text(model?.id),
       provider: text(model?.provider),
       baseUrl: text(model?.baseUrl),
-      purpose: text(data.purpose),
+      purpose: purposeOf(d.family, data),
       userId: document.attribution?.userId,
       billing: reportedBilling({ billing: data.billing, authMode: document.client.authMode }),
       tokens,
+      aggregate: record(data.usage)?.provenance == 'aggregate',
       costs: cost ? [cost] : [],
-      failed: document.type == 'model.request' && !!data.outcome && data.outcome != 'ok'
-    });
+      failed: document.type == 'model.request' && !!data.outcome && data.outcome != 'ok',
+      errorClass,
+      keyed: keyedRequest
+    };
+
+    let slot = keyedRequest ? requestSlots.get(dedupeKey) : undefined;
+
+    if (slot === undefined) {
+      let index = usage.push(entry) - 1;
+      if (keyedRequest) requestSlots.set(dedupeKey, index);
+    } else if (entry.rank < usage[slot]!.rank) {
+      usage[slot] = entry;
+    }
   }
+
+  for (let entry of usage) {
+    if (entry.failed) increment(errorsByClass, entry.errorClass ?? 'unknown');
+  }
+
+  let selection = selectUsageSource(usage);
+  let { hasUsage, winner, requestEntries, isGapFill } = selection;
 
   // A session-level provider that overrides the sign-in also tells where requests without their
   // own provider went.
@@ -535,96 +874,13 @@ export let aggregateSession = async (d: {
     defaultBilling: defaultBillingOf(d.family)
   });
 
-  let usageBearing = usage.filter(entry => entry.tokens || entry.costs.length);
-  let winnerRank = Math.min(...usageBearing.map(entry => entry.rank));
-  let winner = usageBearing.find(entry => entry.rank == winnerRank)?.source;
-
-  let requestEntries = usage.filter(entry => entry.type == 'model.request');
-  let winnerHasRequests = requestEntries.some(entry => entry.rank == winnerRank);
-
-  let modelByCorrelation = new Map<string, UsageEntry>();
-
-  for (let entry of requestEntries) {
-    if (!entry.modelRaw) continue;
-
-    if (entry.turnId) modelByCorrelation.set(`turn:${entry.turnId}`, entry);
-    if (entry.requestId) modelByCorrelation.set(`request:${entry.requestId}`, entry);
-  }
-
-  let requestOf = (entry: UsageEntry): ModelRequest | undefined =>
-    entry.modelRaw
-      ? {
-          raw: entry.modelRaw,
-          provider: entry.provider,
-          family: d.family,
-          baseUrl: entry.baseUrl,
-          subscription: isSubscriptionBilling(entry.billing)
-        }
-      : undefined;
-
-  let resolver = d.catalog
-    ? await d.catalog.prepare(usage.flatMap(entry => requestOf(entry) ?? []))
-    : null;
-
-  let resolve = (entry: UsageEntry, at: Date): ResolvedModel => {
-    let request = requestOf(entry);
-    return request && resolver ? resolver.resolveModel({ ...request, at }) : {};
-  };
-
-  let counted = usage
-    .filter(entry =>
-      entry.type == 'model.request'
-        ? !winnerHasRequests || entry.rank == winnerRank
-        : entry.rank == winnerRank
-    )
-    .map(entry => {
-      let modelSource =
-        entry.modelRaw || entry.type == 'model.request'
-          ? entry
-          : (modelByCorrelation.get(`request:${entry.requestId}`) ??
-            modelByCorrelation.get(`turn:${entry.turnId}`) ??
-            entry);
-
-      let resolution = resolve(modelSource, entry.occurredAt);
-
-      let countsUsage = entry.rank == winnerRank;
-      let tokens = countsUsage ? entry.tokens : undefined;
-      let costs = countsUsage ? entry.costs : [];
-
-      let contextTokens = tokens
-        ? tokens.inputUncached + tokens.cacheRead + tokens.cacheWrite
-        : 0;
-      let computedNumber =
-        resolution.period && tokens
-          ? computeRequestCost({ pricing: resolution.period.pricing, tokens, contextTokens })
-          : undefined;
-      let computed = computedNumber === undefined ? undefined : parseAmount(computedNumber);
-
-      let contract =
-        d.pricing && (tokens || costs.length)
-          ? d.pricing({
-              at: entry.occurredAt,
-              resolution,
-              billingMode: entry.billing.mode,
-              list: computed,
-              tokens,
-              contextTokens
-            })
-          : undefined;
-
-      return {
-        entry,
-        resolution,
-        modelId: resolution.modelId,
-        modelRaw: modelSource.modelRaw,
-        provider: modelSource.provider,
-        tokens,
-        costs,
-        computed,
-        overrideId: contract?.override.id,
-        contract: contract?.amount
-      };
-    });
+  let counted = await priceUsage({
+    usage,
+    selection,
+    family: d.family,
+    catalog: d.catalog,
+    pricing: d.pricing
+  });
 
   let basis = selectCostBasis(counted);
 
@@ -637,7 +893,12 @@ export let aggregateSession = async (d: {
 
   for (let item of counted) {
     let isRequest = item.entry.type == 'model.request';
-    let preferred = preferredAmount(item, basis);
+
+    let preferred = item.catalogFirst
+      ? (preferredAmount(item, basis == 'contract' ? 'contract' : 'computed') ??
+        preferredAmount(item, 'client_estimate'))
+      : (preferredAmount(item, basis) ??
+        (isGapFill(item.entry) && basis != 'billed' ? item.computed : undefined));
 
     if (isRequest) {
       requests++;
@@ -645,9 +906,7 @@ export let aggregateSession = async (d: {
     }
 
     if (item.tokens) addTokens(totals.tokens, item.tokens);
-    for (let cost of item.costs) addCost(totals.costs, cost);
-    if (item.computed !== undefined) totals.computed = (totals.computed ?? 0n) + item.computed;
-    if (item.contract !== undefined) totals.contract = (totals.contract ?? 0n) + item.contract;
+    addCosted(totals, item);
     if (preferred !== undefined) costUsd = (costUsd ?? 0n) + preferred;
 
     let { vendorId, vendorSource, offering, period } = item.resolution;
@@ -686,9 +945,7 @@ export let aggregateSession = async (d: {
       if (item.modelRaw) model.rawIds.add(item.modelRaw);
       if (isRequest) model.summary.requests++;
       if (item.tokens) addTokens(model.tokens, item.tokens);
-      for (let cost of item.costs) addCost(model.costs, cost);
-      if (item.computed !== undefined) model.computed = (model.computed ?? 0n) + item.computed;
-      if (item.contract !== undefined) model.contract = (model.contract ?? 0n) + item.contract;
+      addCosted(model, item);
 
       model.vendorSource = strongerSource(model.vendorSource, vendorSource);
       if (offering && (!model.offering || item.entry.occurredAt >= model.offering.at)) {
@@ -724,25 +981,66 @@ export let aggregateSession = async (d: {
     }
 
     if (item.tokens) addTokens(slice.slice.tokens, item.tokens);
-    for (let cost of item.costs) addCost(slice.costs, cost);
-    if (item.computed !== undefined) slice.computed = (slice.computed ?? 0n) + item.computed;
-    if (item.contract !== undefined) slice.contract = (slice.contract ?? 0n) + item.contract;
+    addCosted(slice, item);
     if (preferred !== undefined) slice.preferred = (slice.preferred ?? 0n) + preferred;
   }
 
-  let useCodeLines = codeLines.added + codeLines.removed > 0;
+  statsSamples.sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
 
-  if (firstOccurredAt) {
+  let peak = { added: 0, removed: 0 };
+
+  for (let sample of statsSamples) {
+    let totals = sliceFor({ occurredAt: sample.occurredAt });
+
+    totals.statsLines.added += Math.max(0, sample.added - peak.added);
+    totals.statsLines.removed += Math.max(0, sample.removed - peak.removed);
+    peak = {
+      added: Math.max(peak.added, sample.added),
+      removed: Math.max(peak.removed, sample.removed)
+    };
+  }
+
+  let latestSample = statsSamples[statsSamples.length - 1];
+  let statsLines = {
+    added: latestSample?.added ?? 0,
+    removed: latestSample?.removed ?? 0
+  };
+
+  let hasLines = (lines: Lines) => lines.added + lines.removed > 0;
+  let lineSource: 'codeLines' | 'toolLines' | 'statsLines' = hasLines(codeLines)
+    ? 'codeLines'
+    : hasLines(toolLines)
+      ? 'toolLines'
+      : 'statsLines';
+
+  let lines = { codeLines, toolLines, statsLines }[lineSource];
+
+  // A thread in which nothing happened, like one that only warmed up its connection, is kept but
+  // not listed or counted as a session.
+  let empty =
+    !worked &&
+    !prompts &&
+    !toolCalls &&
+    !requestEntries.length &&
+    !commitRefs.size &&
+    !pullRequestRefs.size &&
+    !hasLines(lines) &&
+    !fromDesktop &&
+    !(await d.hasMeasurements?.());
+
+  let span = ownSpan.first ? ownSpan : anySpan;
+
+  if (span.first && !empty) {
     sliceFor({
-      occurredAt: firstOccurredAt,
-      subagentId: firstSubagentId
+      occurredAt: span.first,
+      subagentId: span.firstSubagentId
     }).slice.sessionsStarted = 1;
   }
 
   let subagentIds = new Set([...subagentNames.keys(), ...subagents.keys()]);
 
   let summary: SessionSummary = {
-    durationMs: firstOccurredAt ? Math.max(0, lastEndedAt - firstOccurredAt.getTime()) : 0,
+    durationMs: span.first ? Math.max(0, span.endedAt - span.first.getTime()) : 0,
     turns,
     prompts,
     requests,
@@ -775,46 +1073,48 @@ export let aggregateSession = async (d: {
         : {}),
       ...(model.priceAssumed ? { priceAssumed: true as const } : {}),
       tokens: model.tokens,
-      costReported: reportedCosts(model.costs),
-      ...(model.computed !== undefined ? { costComputedUsd: toDecimal(model.computed) } : {}),
-      ...(model.contract !== undefined ? { costContractUsd: toDecimal(model.contract) } : {})
+      ...costFieldsOf(model)
     })),
     tokens: totals.tokens,
-    costReported: reportedCosts(totals.costs),
-    ...(totals.computed !== undefined ? { costComputedUsd: toDecimal(totals.computed) } : {}),
-    ...(totals.contract !== undefined ? { costContractUsd: toDecimal(totals.contract) } : {}),
+    ...costFieldsOf(totals),
     ...(costUsd !== undefined ? { costUsd: toDecimal(costUsd) } : {}),
-    lines: useCodeLines ? codeLines : toolLines,
-    commits,
+    lines,
+    commits: commitRefs.size,
     pullRequests,
+    commitRefs: newestFirst(
+      [...commitRefs.values()].map(entry => ({
+        ...entry.ref,
+        at: commitTime(entry, span.first)
+      })),
+      maxCommitRefs
+    ),
+    pullRequestRefs: newestFirst(pullRequestRefs.values(), maxPullRequestRefs).map(
+      entry => entry.ref
+    ),
     errorsByClass,
     compactions
   };
 
   return {
     records,
+    empty,
     summary,
     slices: [...slices.values()].map(totals => ({
       ...totals.slice,
-      costReported: reportedCosts(totals.costs),
-      ...(totals.computed !== undefined
-        ? { costComputedUsd: toDecimal(totals.computed) }
-        : {}),
-      ...(totals.contract !== undefined
-        ? { costContractUsd: toDecimal(totals.contract) }
-        : {}),
+      ...costFieldsOf(totals),
       ...(totals.preferred !== undefined ? { costUsd: toDecimal(totals.preferred) } : {}),
-      lines: useCodeLines ? totals.codeLines : totals.toolLines
+      lines: totals[lineSource]
     })),
     coverage: {
-      hasUsage: usageBearing.length > 0,
+      hasUsage,
       hasContext,
       hasRepo,
       ...(winner ? { usageSource: winner } : {})
     },
     correlations: [...correlations.values()],
-    firstOccurredAt,
-    lastOccurredAt,
+    ...toolCallPass.result(),
+    firstOccurredAt: span.first,
+    lastOccurredAt: span.last,
     lastTurnObservedAt
   };
 };

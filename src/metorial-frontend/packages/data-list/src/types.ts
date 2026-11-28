@@ -6,6 +6,7 @@ export type TableColumn<Item extends { id: string }, Input extends {} = any, Ctx
   id: string;
   isDefault: boolean;
   header: React.ReactNode;
+  interactive?: boolean;
   render: (row: Item, input: Input, ctx: Ctx) => React.ReactNode;
 };
 

@@ -23,6 +23,7 @@ import {
 } from '@metorial-subspace/db';
 import { protoGuardService } from '@metorial-subspace/module-protoguard';
 import { getRetentionPolicy } from '@metorial-subspace/provider-utils';
+import type { ClientCall } from '../lib/clientCall';
 import { messageCreatedQueue } from '../queues/message/messageCreated';
 import { createError, messageFailureReasonToErrorType } from './createError';
 
@@ -55,6 +56,7 @@ export interface CreateMessageProps {
 
   clientMcpId?: PrismaJson.SessionMessageClientMcpId;
   providerMcpId?: string;
+  clientCall?: ClientCall | null;
 
   completedAt?: Date;
 }
@@ -163,6 +165,8 @@ export let createMessage = async (data: CreateMessagePropsFull) => {
               toolKey: data.tool!.key,
               rationale: data.rationale,
               operation: data.operation,
+              clientCallId: data.clientCall?.id ?? null,
+              clientCallSource: data.clientCall?.source ?? null,
               sessionOid: data.session.oid,
               tenantOid: data.session.tenantOid,
               projectOid: data.session.projectOid,

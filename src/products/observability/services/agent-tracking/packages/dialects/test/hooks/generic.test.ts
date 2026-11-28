@@ -1,3 +1,4 @@
+import { fullIngestPolicy } from '@mtsrc/agent-tracking-spec';
 import { describe, expect, it } from 'vitest';
 import { buildMapped } from '../build';
 import {
@@ -5,12 +6,11 @@ import {
   codexHooks,
   createGenericHooks,
   genericHooksId,
-  hookDialectById,
   hookDialectFor
 } from '../../src/hooks';
 import { claudeHookPayloads, hookTime, sentinel } from './fixtures';
 
-let context = { identityHint: 'hint-1', occurredAt: hookTime };
+let context = { policy: fullIngestPolicy, identityHint: 'hint-1', occurredAt: hookTime };
 
 describe('createGenericHooks', () => {
   let dialect = createGenericHooks('cursor');
@@ -77,7 +77,9 @@ describe('createGenericHooks', () => {
   });
 
   it('defaults occurredAt to null', () => {
-    expect(dialect.map({ identityHint: 'h' }, {})[0]?.draft.occurredAt).toBeNull();
+    expect(
+      dialect.map({ policy: fullIngestPolicy, identityHint: 'h' }, {})[0]?.draft.occurredAt
+    ).toBeNull();
   });
 
   it('builds a record without a session', () => {
@@ -108,29 +110,8 @@ describe('hookDialectFor', () => {
 
       expect(dialect.id).toBe(genericHooksId);
       expect(dialect.map(context, {})).toHaveLength(1);
-      expect(hookDialectById(client, genericHooksId)?.client).toBe(client);
-      expect(hookDialectById(client, 'claude-code.hooks.v1')).toBeNull();
     }
   );
-});
-
-describe('hookDialectById', () => {
-  it('resolves a known dialect for its client', () => {
-    expect(hookDialectById('claude-code', 'claude-code.hooks.v1')).toBe(claudeCodeHooks);
-    expect(hookDialectById('codex', 'codex.hooks.v1')).toBe(codexHooks);
-  });
-
-  it('resolves the generic dialect for any client', () => {
-    expect(hookDialectById('claude-code', genericHooksId)?.id).toBe(genericHooksId);
-    expect(hookDialectById('anything', genericHooksId)?.client).toBe('anything');
-  });
-
-  it('does not cross-resolve dialects between clients', () => {
-    expect(hookDialectById('codex', 'claude-code.hooks.v1')).toBeNull();
-    expect(hookDialectById('claude-code', 'codex.hooks.v1')).toBeNull();
-    expect(hookDialectById('claude-code', 'claude-code.hooks.v2')).toBeNull();
-    expect(hookDialectById('unknown', 'claude-code.hooks.v1')).toBeNull();
-  });
 });
 
 describe('codex hooks use the same event mapping', () => {

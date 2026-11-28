@@ -1,4 +1,5 @@
 import {
+  arrayField,
   billingFields,
   commonFields,
   stored,
@@ -62,6 +63,15 @@ export let usageDataset: DatasetDef = {
       modelRaw: 'modelRaw',
       repo: { path: 'repoIds', array: true },
       workspace: { path: 'workspaceIds', array: true }
+    }),
+    branch: stored('branch', 'string', 'The VCS branch of the session.', {
+      sensitivity: 'personal',
+      cardinality: 'high',
+      searchable: true
+    }),
+    ticket: arrayField('ticketRefs', 'string', 'Ticket references of the session.', {
+      cardinality: 'high',
+      searchable: true
     }),
     subagent: stored('subagentId', 'id', 'The subagent entity that made the usage.', {
       label: 'entity',
