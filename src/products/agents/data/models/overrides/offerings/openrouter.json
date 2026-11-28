@@ -97,6 +97,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "deepseek/deepseek-v4-pro": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4-pro-0423",
+    "reason": "OpenRouter's listing names this offering 'DeepSeek V4 Pro 0423' with canonicalSlug deepseek/deepseek-v4-pro-20260423, so it is the dated 0423 checkpoint, which the index has as deepseek/deepseek-v4-pro-0423 (2026-04-23), not the general v4-pro entry. The low input price is OpenRouter's own aggregator pricing for the open-weight model.",
+    "by": "agent",
+    "at": "2026-11-28"
+  },
   "deepseek/deepseek-v4-pro-0813": {
     "decision": "link",
     "model": "deepseek/deepseek-v4-pro-0813",
